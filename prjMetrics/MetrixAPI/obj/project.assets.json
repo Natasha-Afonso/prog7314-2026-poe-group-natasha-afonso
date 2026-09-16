@@ -504,11 +504,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\emeris\\source\\repos\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj",
+      "projectUniqueName": "C:\\Users\\emeris\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj",
       "projectName": "MetrixAPI",
-      "projectPath": "C:\\Users\\emeris\\source\\repos\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj",
+      "projectPath": "C:\\Users\\emeris\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj",
       "packagesPath": "C:\\Users\\emeris\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\emeris\\source\\repos\\prjMetrics\\MetrixAPI\\obj\\",
+      "outputPath": "C:\\Users\\emeris\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -577,7 +577,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.400/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
