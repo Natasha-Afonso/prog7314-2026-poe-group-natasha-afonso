@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+/.vs
+/prjMetrics/MetrixAPI/obj
+/prjMetrics/MetrixAPI/obj/Release
