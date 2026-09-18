@@ -104,6 +104,11 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Groups
+
+import androidx.compose.ui.draw.alpha
 
 
 // DATA MODELS
@@ -167,7 +172,7 @@ fun HomeScreen() {
    // STATE
    var userCoins by remember { mutableIntStateOf(1250) }
    var showNewsBoard by remember { mutableStateOf(false) }
-
+    val newsItems = remember {mutableStateListOf(*sampleNewList.toTypedArray())}
    // QUEST CARD VISIBILITY & EXPANSION STATES
    var isQuestCardVisible by remember { mutableStateOf(true) }
    var isQuestCardExpanded by remember { mutableStateOf(false) }
@@ -310,7 +315,7 @@ fun HomeScreen() {
          coins = userCoins,
          todoCount = todos.count { !it.done },
          todoPanelOpen = isQuestCardVisible,
-         hasUnreadNews = true,
+         hasUnreadNews = newsItems.isNotEmpty(),
          newsBoardOpen = showNewsBoard,
          onTodoClick = {
             // Toggle visibility on menu button tap
@@ -513,7 +518,9 @@ fun HomeScreen() {
          exit = shrinkVertically()
       ) {
          NewsBoard(
-            newsList = sampleNewList,
+            newsList = newsItems,
+            onDismissItem = {id -> newsItems.removeAll {it.id == id} },
+            onClearAll = {newsItems.clear()},
             onClose = { showNewsBoard = false })
       }
 
@@ -769,16 +776,19 @@ fun TodoRow(item: TodoItem, onToggle: () -> Unit) {
 @Composable
 fun NewsBoard(
    newsList: List<NavigationItem>,
+   onDismissItem: (String)-> Unit,
+   onClearAll: () -> Unit,
    onClose: () -> Unit) {
    Card(
-      modifier = Modifier.width(190.dp)
+      modifier = Modifier.width(220.dp)
       .offset(x = 8.dp, y = 20.dp),
-      shape = RoundedCornerShape(16.dp),
+      shape = RoundedCornerShape(14.dp),
       colors = CardDefaults.cardColors(containerColor = Color(0xEECCCCCC)),
-      elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
-      border = BorderStroke(2.5.dp, Color.White)
+      elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+    //  border = BorderStroke(2.dp, Color.White)
    ) {
-      Column(modifier = Modifier.padding(12.dp)) {
+      Column(modifier = Modifier.padding(5.dp)
+      ) {
 
          Row(
             modifier = Modifier.fillMaxWidth(),
@@ -786,7 +796,7 @@ fun NewsBoard(
             horizontalArrangement = Arrangement.SpaceBetween
          ) {
             //Header
-            IconButton(onClick = {/*DELETE ELKE*/ }, modifier = Modifier.size(20.dp)) {
+            IconButton(onClick = onClearAll, modifier = Modifier.size(18.dp)) {
                Icon(
                   Icons.Default.DeleteForever,
                   contentDescription = "Delete All",
@@ -794,33 +804,44 @@ fun NewsBoard(
                )
             }
             //header title
-            Text("METRICS NEWS", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text("METRICS NEWS", fontSize = 8.sp, fontWeight= FontWeight.ExtraBold, color = Color(0xFF334155))
             //close X
-            IconButton(onClick = onClose, modifier = Modifier.size(20.dp)) {
+            IconButton(onClick = onClose, modifier = Modifier.size(18.dp)) {
                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B))
             }
          }
 
-         Spacer(modifier = Modifier.height(8.dp))
+         Spacer(modifier = Modifier.height(6.dp))
 
-
-
-         LazyColumn(
-            modifier = Modifier
-               .fillMaxWidth()
-               .background(Color.Transparent)
-               .padding(8.dp)
-         ) {
-            items(items = newsList,
-              key = { it.id }
-               ) {item  ->
-               NotificationCardItem(
-                  item = item,
-                  onDismiss = { /**/}
-               )
-            }
-
+   if (newsList.isEmpty()) {
+         Text(
+            text = "You're all caught up",
+            fontSize = 8.sp,
+            color = Color(0xFF90A4AE),
+            modifier = Modifier.padding(vertical = 8.dp)
+         )
+      }
+      else {
+      LazyColumn(
+         modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp),//fixed height
+         verticalArrangement = Arrangement.spacedBy(4.dp)
+      ) {
+         items(
+            items = newsList,
+            key = { it.id }
+         ) { item ->
+            NotificationCardItem(
+               item = item,
+               onDismiss = { onDismissItem(item.id) }
+            )
          }
+
+      }
+      }
+
+
 
 //         Column(
 //            modifier = Modifier
@@ -853,47 +874,86 @@ fun  NotificationCardItem(
 ) {
    val cardColor = when (item.type) {
       NotificationType.ALERT -> Color(0xFF389ED0) //BLUE
-      NotificationType.REWARD -> Color(0xFF8B5CF6)//PURPLE
-      NotificationType.MILESTONE -> Color.Yellow
-      NotificationType.Social -> Color.Green
+      NotificationType.REWARD -> Color(0xFFFFA726)//PURPLE
+      NotificationType.MILESTONE -> Color(0xFF8B5CF6)
+      NotificationType.Social -> Color(0xFF43A047)
    }
-   Card(
-      modifier = Modifier.fillMaxWidth(),
-      shape = RoundedCornerShape(3.dp),
-      colors = CardDefaults.cardColors(containerColor = cardColor)
-   ) {
-      Column(modifier = Modifier.padding(8.dp)) {
+
+   val icon: ImageVector = when (item.type) {
+      NotificationType.ALERT -> Icons.Default.WaterDrop
+      NotificationType.REWARD -> Icons.Default.CardGiftcard
+      NotificationType.MILESTONE -> Icons.Default.EmojiEvents
+      NotificationType.Social -> Icons.Default.Groups
+   }
+   Box(modifier = Modifier.fillMaxWidth()) {
+      Card(
+         modifier = Modifier.fillMaxWidth(),
+         shape = RoundedCornerShape(6.dp),
+         colors = CardDefaults.cardColors(containerColor = cardColor)
+      ) {
+         //Column(modifier = Modifier.padding(8.dp)) {
          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.padding(5.dp),
             verticalAlignment = Alignment.CenterVertically
          ) {
-            Text(
-               text = item.timestamp,
-               fontSize = 8.sp,
-               color = Color.White.copy(alpha= 0.8f)
-            )
+            Box(
+               modifier = Modifier.size(24.dp)
+                  .clip(RoundedCornerShape(9.dp))
+                  .background(Color.White.copy(0.25f)),
+               contentAlignment = Alignment.Center
+            ) {
+               Icon(
+                  icon,
+                  contentDescription = null,
+                  tint = Color.White,
+                  modifier = Modifier.size(18.dp)
+               )
+            }
 
-            IconButton(onClick = onDismiss, modifier = Modifier.size(14.dp)) {
-               Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = Color.White)
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+               Text(
+                  text = item.timestamp,
+                  fontSize = 7.sp,
+                  color = Color.White.copy(alpha = 0.8f)
+
+               )
+               Spacer(modifier = Modifier.height(1.dp))
+
+               Text(
+                  text = item.title,
+                  fontSize = 8.5.sp,
+                  fontWeight = FontWeight.Bold,
+                  color = Color.White
+               )
+               Spacer(modifier = Modifier.height(1.dp))
+
+               Text(
+                  text = item.message,
+                  fontSize = 7.5.sp,
+                  color = Color.White
+               )
             }
          }
-         Text(
-            text = item.title,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-         )
-         Spacer(modifier = Modifier.height(1.dp))
-
-         Text(
-            text = item.message,
-            fontSize = 9.sp,
-            color = Color.White
-         )
+      }
+      Box(
+         modifier = Modifier.align(Alignment.TopEnd)
+            .offset(x = 6.dp, y = (-6).dp)
+            .size(20.dp)
+            .clip(CircleShape)
+            .background(Color.White)
+            .border(1.dp, cardColor, CircleShape)
+            .clickable { onDismiss() },
+         contentAlignment = Alignment.Center
+      ) {
+         Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = Color(0xFFE53935),
+            modifier = Modifier.size(12.dp))
       }
    }
 }
+
+
 
 // AVATAR PIE MENU
 @Composable
