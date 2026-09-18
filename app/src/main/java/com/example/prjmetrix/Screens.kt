@@ -1,5 +1,6 @@
 package com.example.prjmetrix
 
+import android.app.Notification
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -101,6 +102,9 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+
 
 // DATA MODELS
 data class HabitCircle(
@@ -136,6 +140,27 @@ data class PieMenuItem(
    val onSelect: () -> Unit
 )
 
+
+
+enum class NotificationType {
+   ALERT, REWARD,MILESTONE,Social
+}
+val sampleNewList = listOf(
+   NavigationItem(
+      id = "1",
+      title = "BRUSH TEETH PLEASE",
+      message = "Stinky sticky",
+      type = NotificationType.ALERT,
+      timestamp = "Just now"
+   ),
+   NavigationItem(
+      id = "2",
+      title = "YOU WON A FREE GIFT",
+      message = "OPEN THE STORE TO SEE",
+      type = NotificationType.REWARD,
+      timestamp = "Just now"
+   )
+)
 @Composable
 fun HomeScreen() {
 
@@ -487,7 +512,9 @@ fun HomeScreen() {
          enter = expandVertically(),
          exit = shrinkVertically()
       ) {
-         NewsBoard(onClose = { showNewsBoard = false })
+         NewsBoard(
+            newsList = sampleNewList,
+            onClose = { showNewsBoard = false })
       }
 
       // BOTTOM CARD
@@ -740,7 +767,9 @@ fun TodoRow(item: TodoItem, onToggle: () -> Unit) {
 
 // NEWS BOARD
 @Composable
-fun NewsBoard(onClose: () -> Unit) {
+fun NewsBoard(
+   newsList: List<NavigationItem>,
+   onClose: () -> Unit) {
    Card(
       modifier = Modifier.width(190.dp)
       .offset(x = 8.dp, y = 20.dp),
@@ -751,13 +780,21 @@ fun NewsBoard(onClose: () -> Unit) {
    ) {
       Column(modifier = Modifier.padding(12.dp)) {
 
-         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+         Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+         ) {
             //Header
-            IconButton(onClick = {/*DELETE ELKE*/}, modifier = Modifier.size(20.dp)) {
-               Icon(Icons.Default.DeleteForever, contentDescription = "Delete All", tint = Color(0xFF64748B))
+            IconButton(onClick = {/*DELETE ELKE*/ }, modifier = Modifier.size(20.dp)) {
+               Icon(
+                  Icons.Default.DeleteForever,
+                  contentDescription = "Delete All",
+                  tint = Color(0xFF64748B)
+               )
             }
             //header title
-            Text("METRICS NEWS", fontSize =10.sp, fontWeight = FontWeight.Bold)
+            Text("METRICS NEWS", fontSize = 10.sp, fontWeight = FontWeight.Bold)
             //close X
             IconButton(onClick = onClose, modifier = Modifier.size(20.dp)) {
                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B))
@@ -768,64 +805,92 @@ fun NewsBoard(onClose: () -> Unit) {
 
 
 
-         LazyColumn {
-            modifierr = Modifier
-               .fillMaxSize()
-               .heightIn(max =320.dp), //prevents infinite board
-            
-         }
-            items(contentList) { content ->
-               when(content){
-                  is ImageOnly -> MessageRow(content)
-                  is ImageTextRight -> ImageTextRight(content)
-                  is ImageTextLeft -> ImageTextLeft(content)
-                  is ImageTextTop -> ImageTextTop(content)
-                  //...
-               }
-            }
-
-         Column(
+         LazyColumn(
             modifier = Modifier
                .fillMaxWidth()
-               .background(Color(0xFFE2E8F0))
+               .background(Color.Transparent)
                .padding(8.dp)
          ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-               Text("Aspiration Level", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color(0xFF334155), modifier = Modifier.weight(1f))
-               Text("75%", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color(0xFF0284C7))
+            items(items = newsList,
+              key = { it.id }
+               ) {item  ->
+               NotificationCardItem(
+                  item = item,
+                  onDismiss = { /**/}
+               )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            LinearProgressIndicator(
-               progress = { 0.75f },
-               color = Color(0xFF958705),
-               modifier = Modifier.fillMaxWidth().height(8.dp)
-            )
+
          }
+
+//         Column(
+//            modifier = Modifier
+//               .fillMaxWidth()
+//               .background(Color(0xFFE2E8F0))
+//               .padding(8.dp)
+//         ) {
+//            Row(modifier = Modifier.fillMaxWidth()) {
+//               Text("Aspiration Level", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color(0xFF334155), modifier = Modifier.weight(1f))
+//               Text("75%", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color(0xFF0284C7))
+//            }
+//            Spacer(modifier = Modifier.height(4.dp))
+//            LinearProgressIndicator(
+//               progress = { 0.75f },
+//               color = Color(0xFF958705),
+//               modifier = Modifier.fillMaxWidth().height(8.dp)
+//            )
+//         }
 
          Spacer(modifier = Modifier.height(8.dp))
 
-         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("💧", fontSize = 14.sp)
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-               "Natty needs 5 more glasses of water. Finish today's goal for a mystery gift!",
-               fontSize = 10.sp,
-               fontWeight = FontWeight.Bold,
-               color = Color(0xFF1E293B)
-            )
          }
+      }
+   }
 
-         Spacer(modifier = Modifier.height(8.dp))
-
-         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("❓", fontSize = 14.sp)
-            Spacer(modifier = Modifier.width(6.dp))
+@Composable
+fun  NotificationCardItem(
+   item: NavigationItem,
+   onDismiss: () -> Unit
+) {
+   val cardColor = when (item.type) {
+      NotificationType.ALERT -> Color(0xFF389ED0) //BLUE
+      NotificationType.REWARD -> Color(0xFF8B5CF6)//PURPLE
+      NotificationType.MILESTONE -> Color.Yellow
+      NotificationType.Social -> Color.Green
+   }
+   Card(
+      modifier = Modifier.fillMaxWidth(),
+      shape = RoundedCornerShape(3.dp),
+      colors = CardDefaults.cardColors(containerColor = cardColor)
+   ) {
+      Column(modifier = Modifier.padding(8.dp)) {
+         Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+         ) {
             Text(
-               "Natty's wondering why the sky is blue. Chat with her to find out.",
-               fontSize = 10.sp,
-               color = Color(0xFF334155)
+               text = item.timestamp,
+               fontSize = 8.sp,
+               color = Color.White.copy(alpha= 0.8f)
             )
+
+            IconButton(onClick = onDismiss, modifier = Modifier.size(14.dp)) {
+               Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = Color.White)
+            }
          }
+         Text(
+            text = item.title,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+         )
+         Spacer(modifier = Modifier.height(1.dp))
+
+         Text(
+            text = item.message,
+            fontSize = 9.sp,
+            color = Color.White
+         )
       }
    }
 }
