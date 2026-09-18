@@ -23,12 +23,8 @@ namespace MetrixAPI.Services
             {
                 var credentials = await firebaseAuth.CreateUsersWithEmailAndPasswordAsync(request.Email.Trim(), request.Password);
 
-                await AdminAuth.DefaultInstance.SetCustomserClaimAsync(credentials.User.Uid,
-                    new Dictionary<string, object>
-                    {
-                        {"birthday", request.Birthday.ToString("yyyy-MM-dd") }
-                    });
-                //sign in token must include the birthday
+                await AdminAuth.DefaultInstance.SetCustomserClaimAsync(credentials.User.Uid)
+             
                 return await SignInAsync(new SignInRequest
                 {
                     Email = request.Email,

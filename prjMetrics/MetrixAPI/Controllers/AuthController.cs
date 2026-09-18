@@ -55,8 +55,7 @@ namespace MetrixAPI.Controllers
             return Ok(new
             {
                 uid = User.FindFirst("user_id")?.Value,
-                email = User.FindFirst("email")?.Value,
-                birthday = User.FindFirst("birthday")?.Value
+                email = User.FindFirst("email")?.Value
             });
         }
     }

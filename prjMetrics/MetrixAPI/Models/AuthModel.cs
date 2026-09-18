@@ -12,9 +12,6 @@ namespace MetrixAPI.Models
 
             [Required]
             public string Password { get; set; } = string.Empty;
-
-            [Required]
-            public DateTime Birthday {  get; set; }
         }
 
         public class SignInRequest
