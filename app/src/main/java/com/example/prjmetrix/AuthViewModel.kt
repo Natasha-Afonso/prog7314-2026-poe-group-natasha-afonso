@@ -11,7 +11,8 @@ import kotlinx.coroutines.launch
 data class AuthUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val isAuthenticated: Boolean = false
+    val isAuthenticated: Boolean = false,
+    val isCheckingAuth: Boolean = true
 )
 
 class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
@@ -19,6 +20,16 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
+    init {
+        checkAuthStatus()
+    }
+    //checking if the user has been logged in before- it will check for saved token
+    private fun checkAuthStatus() {
+        viewModelScope.launch {
+            val loggedIn = repository.isLoggedIn()
+            _uiState.update { it.copy(isCheckingAuth = false, isAuthenticated = loggedIn) }
+        }
+    }
     fun signIn(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
             _uiState.update { it.copy(errorMessage = "Please enter your email and password.") }
