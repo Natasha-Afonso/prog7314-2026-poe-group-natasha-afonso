@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +46,7 @@ import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -91,6 +93,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -115,6 +118,15 @@ data class TodoItem(
    val done: Boolean = false,
    val habitId: String? = null
 )
+
+data class NavigationItem(
+   val id: String,
+   val title: String,
+   val message: String,
+   val type: NotificationType,//eg reward , outfit reccommendations, avatar messsages
+   val timestamp: String ="Just now"
+)
+
 
 data class PieMenuItem(
    val id: String,
@@ -297,8 +309,8 @@ fun HomeScreen() {
       ) {
          Card(
             modifier = Modifier
-               .width(185.dp)
-               .heightIn(max = if (isQuestCardExpanded) 280.dp else Dp.Unspecified),
+               .width(165.dp)
+               .heightIn(max = if (isQuestCardExpanded) 270.dp else Dp.Unspecified),
             shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
             border = BorderStroke(1.5.dp, Color(0xFFE7B4BE)),
@@ -518,7 +530,7 @@ fun HomeScreen() {
                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-               listOf("😃", "💕", "🐛", "☕", "🌸", "📷", "🎬").forEach { emoji ->
+               listOf("😃", "😔", "😐", "😍", "😆", "😎", "😶","😡").forEach { emoji ->
                   Card(
                      modifier = Modifier.size(36.dp),
                      shape = RoundedCornerShape(9.dp),
@@ -730,7 +742,8 @@ fun TodoRow(item: TodoItem, onToggle: () -> Unit) {
 @Composable
 fun NewsBoard(onClose: () -> Unit) {
    Card(
-      modifier = Modifier.width(240.dp),
+      modifier = Modifier.width(190.dp)
+      .offset(x = 8.dp, y = 20.dp),
       shape = RoundedCornerShape(16.dp),
       colors = CardDefaults.cardColors(containerColor = Color(0xEECCCCCC)),
       elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
@@ -738,20 +751,38 @@ fun NewsBoard(onClose: () -> Unit) {
    ) {
       Column(modifier = Modifier.padding(12.dp)) {
 
-         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-//            Text(
-//               text = "Today on: MeTrix NEWS",
-//               fontSize = 11.sp,
-//               fontWeight = FontWeight.ExtraBold,
-//               color = Color(0xFF0F172A),
-//               modifier = Modifier.weight(1f)
-//            )
+         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            //Header
+            IconButton(onClick = {/*DELETE ELKE*/}, modifier = Modifier.size(20.dp)) {
+               Icon(Icons.Default.DeleteForever, contentDescription = "Delete All", tint = Color(0xFF64748B))
+            }
+            //header title
+            Text("METRICS NEWS", fontSize =10.sp, fontWeight = FontWeight.Bold)
+            //close X
             IconButton(onClick = onClose, modifier = Modifier.size(20.dp)) {
                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B))
             }
          }
 
          Spacer(modifier = Modifier.height(8.dp))
+
+
+
+         LazyColumn {
+            modifierr = Modifier
+               .fillMaxSize()
+               .heightIn(max =320.dp), //prevents infinite board
+            
+         }
+            items(contentList) { content ->
+               when(content){
+                  is ImageOnly -> MessageRow(content)
+                  is ImageTextRight -> ImageTextRight(content)
+                  is ImageTextLeft -> ImageTextLeft(content)
+                  is ImageTextTop -> ImageTextTop(content)
+                  //...
+               }
+            }
 
          Column(
             modifier = Modifier
@@ -992,3 +1023,7 @@ private fun NavStripIcon(
       content()
    }
 }
+/*References
+https://proandroiddev.com/mastering-lazy-lists-in-jetpack-compose-with-data-classes-and-mvi-da240800c6e9
+https://raghunandan2005.medium.com/mastering-high-performance-custom-canvas-animations-in-jetpack-compose-building-a-premium-circular-b9f9e465b118
+ */
