@@ -36,6 +36,21 @@ namespace MetrixAPI.Controllers
         }
 
         [AllowAnonymous]
+        [HttpPost("sso")]
+        public async Task<IActionResult> SignInWithGoogle([FromBody] GoogleSignInRequest request)
+        {
+            try
+            {
+                var response = await authService.SignInWithGoogleAsync(request);
+                return Ok(response);
+            }
+            catch (AppException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [AllowAnonymous]
         [HttpPost("signin")]
         public async Task<IActionResult> SignIn(SignInRequest request)
         {

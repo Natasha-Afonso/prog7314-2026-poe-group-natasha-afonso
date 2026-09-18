@@ -12,6 +12,9 @@ namespace MetrixAPI.Services
     {
         Task<AuthResponse> SignUpAsync(SignUpRequest request);
         Task<AuthResponse> SignInAsync(SignInRequest request);
+        Task<AuthResponse> SignInWithGoogleAsync(GoogleSignInRequest request);
+        //Task<AuthResponse> SignUpWithGoogleAsync(GoogleSignUpRequest request);
+
     }
 
     public class AuthService(FirebaseAuthClient firebaseAuth) : IAuthService
@@ -64,6 +67,29 @@ namespace MetrixAPI.Services
             catch (ClientAuthException)
             {
                 return null;
+            }
+        }
+
+        public async Task<AuthResponse> SignInWithGoogleAsync(GoogleSignInRequest request)
+        {
+            try
+            {
+                var googleCredential = GoogleProvider.GetCredential(request.IdToken, null);
+                var credentials = await firebaseAuth.CreateUsersWithEmailAndPasswordAsync(request.Email.Trim(), request.Password);
+
+                var idToken = await credentials.User.GetIdTokenAsync();
+
+                return new AuthResponse
+                {
+                    Uid = credentials.User.Uid,
+                    Email = credentials.User.Info.Email ?? request.Email,
+                    IdToken = idToken,
+                    RefreshToken = credentials.User.Credential.RefreshToken
+                };
+            }
+            catch (ClientAuthException)
+            {
+                throw new AppException("Could not sign in with Google. Please try again.");
             }
         }
     }

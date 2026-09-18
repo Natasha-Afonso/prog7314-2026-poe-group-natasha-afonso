@@ -31,11 +31,23 @@ namespace MetrixAPI.Models
             public string RefreshToken { get; set; } = string.Empty;
         }
 
-        publci class FirebaseSettings
+        public class FirebaseSettings
         {
             public string ProjectId { get; set; } = string.Empty;
             public string ApiKey { get; set; } = string.Empty;
             public string ServiceAccountPath { get; set; } = "firebase.json";
         }
+
+        public class GoogleSignInRequest
+        {
+            [Required]
+            pubic string IdToken { get; set; } = string.Empty;
+        }
+
+        //public class GoogleSignUpRequest
+        //{
+        //    [Required]
+        //    pubic string IdToken { get; set; } = string.Empty;
+        //}
     }
 }
