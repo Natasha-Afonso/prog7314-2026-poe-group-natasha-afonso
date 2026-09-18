@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MetrixAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+db2f23311640580b3bb253622d56c549d842ae97")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b8dd2a1bdc5f32444a3d4923605d1ef14545d59a")]
 [assembly: System.Reflection.AssemblyProductAttribute("MetrixAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MetrixAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
