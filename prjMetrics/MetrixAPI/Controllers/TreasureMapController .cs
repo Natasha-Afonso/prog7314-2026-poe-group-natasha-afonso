@@ -16,7 +16,7 @@ namespace MetrixAPI.Controllers
                 return Unauthorized("Avast! Ye lack the secret word.");
             }
 
-\            var treasure = new Treasure
+            var treasure = new Treasure
             {
                 Coordinates = "25.0000° N, 71.0000° W",
                 SecretMessage = "Dead men tell no tales, but this API does. Now try and figure ye new URL for Android!",

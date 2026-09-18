@@ -1,7 +1,7 @@
 using System;
 using MetrixAPI.Model;
 using MetrixAPI.Helpers;
-using Firebase.Auth
+using Firebase.Auth;
 
 using AdminAuth = FirebaseAdmin.Auth.FirebaseAuth;
 using ClientAuthException = Firebase.Auth.FirebaseAuthException;
@@ -26,7 +26,7 @@ namespace MetrixAPI.Services
             {
                 var credentials = await firebaseAuth.CreateUsersWithEmailAndPasswordAsync(request.Email.Trim(), request.Password);
 
-                await AdminAuth.DefaultInstance.SetCustomserClaimAsync(credentials.User.Uid)
+                await AdminAuth.DefaultInstance.SetCustomserClaimAsync(credentials.User.Uid);
              
                 return await SignInAsync(new SignInRequest
                 {

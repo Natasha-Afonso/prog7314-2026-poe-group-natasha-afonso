@@ -41,7 +41,7 @@ namespace MetrixAPI.Models
         public class GoogleSignInRequest
         {
             [Required]
-            pubic string IdToken { get; set; } = string.Empty;
+            public string IdToken { get; set; } = string.Empty;
         }
 
         //public class GoogleSignUpRequest

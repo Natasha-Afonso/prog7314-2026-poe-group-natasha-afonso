@@ -1,4 +1,7 @@
 
+using Firebase.Auth;
+using Firebase.Auth.Providers;
+
 namespace MetrixAPI
 {
     public class Program
@@ -16,6 +19,14 @@ namespace MetrixAPI
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+
+            //configure the firebase API key
+            builder.Services.AddTransient(_ => FirebaseAuthClient(new FirebaseAuthConfig
+            {
+                ApiKey = firebase.ApiKey,
+                AuthDomain = $"{Firebase.ProjectId}.firebaseapp.com",
+                Providers = [new EmailProvider(), new GoogleProvider()]
+            }));
 
             var app = builder.Build();
 
