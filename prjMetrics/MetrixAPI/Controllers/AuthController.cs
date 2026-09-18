@@ -1,15 +1,9 @@
 using System;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
-using AutoMapper;
 using System.IdentityModel.Tokens.Jwt;
-using WebApi.Helpers;
-using Microsoft.Extensions.Options;
-using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using WebApi.Services;
+using MetrixAPI.Services;
 using MetrixAPI.Helpers;
 using MetrixAPI.Models;
 
@@ -27,7 +21,7 @@ namespace MetrixAPI.Controllers
             try
             {
                 var response = await authService.SignUpAsync(request);
-                return StatusCode(StatusCode.Status201Created, response);
+                return StatusCode(StatusCodes.Status201Created, response);
             }
             catch (AppException ex)
             {

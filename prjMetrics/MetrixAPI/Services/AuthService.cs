@@ -1,9 +1,8 @@
-using System;
-using MetrixAPI.Model;
+using MetrixAPI.Models;
 using MetrixAPI.Helpers;
 using Firebase.Auth;
+using Firebase.Auth.Providers;
 
-using AdminAuth = FirebaseAdmin.Auth.FirebaseAuth;
 using ClientAuthException = Firebase.Auth.FirebaseAuthException;
 
 namespace MetrixAPI.Services
@@ -11,28 +10,26 @@ namespace MetrixAPI.Services
     public interface IAuthService
     {
         Task<AuthResponse> SignUpAsync(SignUpRequest request);
-        Task<AuthResponse> SignInAsync(SignInRequest request);
+        Task<AuthResponse?> SignInAsync(SignInRequest request);
         Task<AuthResponse> SignInWithGoogleAsync(GoogleSignInRequest request);
-        //Task<AuthResponse> SignUpWithGoogleAsync(GoogleSignUpRequest request);
-
     }
 
     public class AuthService(FirebaseAuthClient firebaseAuth) : IAuthService
     {
-
         public async Task<AuthResponse> SignUpAsync(SignUpRequest request)
         {
             try
             {
-                var credentials = await firebaseAuth.CreateUsersWithEmailAndPasswordAsync(request.Email.Trim(), request.Password);
+                var credentials = await firebaseAuth.CreateUserWithEmailAndPasswordAsync(request.Email.Trim(), request.Password);
 
-                await AdminAuth.DefaultInstance.SetCustomserClaimAsync(credentials.User.Uid);
-             
-                return await SignInAsync(new SignInRequest
+                var signInResponse = await SignInAsync(new SignInRequest
                 {
                     Email = request.Email,
                     Password = request.Password
                 });
+
+                return signInResponse
+                    ?? throw new AppException("Account created, but automatic sign-in failed. Please sign in manually.");
             }
             catch (ClientAuthException ex) when (ex.Reason == AuthErrorReason.EmailExists)
             {
@@ -48,11 +45,11 @@ namespace MetrixAPI.Services
             }
         }
 
-        public async Task<AuthResponse> SignInAsync(SignUpRequest request)
+        public async Task<AuthResponse?> SignInAsync(SignInRequest request)
         {
             try
             {
-                var credentials = await firebaseAuth.CreateUsersWithEmailAndPasswordAsync(request.Email.Trim(), request.Password);
+                var credentials = await firebaseAuth.SignInWithEmailAndPasswordAsync(request.Email.Trim(), request.Password);
 
                 var idToken = await credentials.User.GetIdTokenAsync();
 
@@ -74,15 +71,15 @@ namespace MetrixAPI.Services
         {
             try
             {
-                var googleCredential = GoogleProvider.GetCredential(request.IdToken, null);
-                var credentials = await firebaseAuth.CreateUsersWithEmailAndPasswordAsync(request.Email.Trim(), request.Password);
+                var googleCredential = GoogleProvider.GetCredential(request.IdToken, OAuthCredentialTokenType.IdToken);
+                var credentials = await firebaseAuth.SignInWithCredentialAsync(googleCredential);
 
                 var idToken = await credentials.User.GetIdTokenAsync();
 
                 return new AuthResponse
                 {
                     Uid = credentials.User.Uid,
-                    Email = credentials.User.Info.Email ?? request.Email,
+                    Email = credentials.User.Info.Email ?? string.Empty,
                     IdToken = idToken,
                     RefreshToken = credentials.User.Credential.RefreshToken
                 };

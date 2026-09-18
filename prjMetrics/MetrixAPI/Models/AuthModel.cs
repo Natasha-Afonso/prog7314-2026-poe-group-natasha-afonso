@@ -3,8 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace MetrixAPI.Models
 {
     //authModel has classes related to firebase, login and sign up
-    public class AuthModel
-    {
+    
         public class SignUpRequest
         {
             [Required]
@@ -35,7 +34,7 @@ namespace MetrixAPI.Models
         {
             public string ProjectId { get; set; } = string.Empty;
             public string ApiKey { get; set; } = string.Empty;
-            public string ServiceAccountPath { get; set; } = "firebase.json";
+            public string ServiceAccountPath { get; set; } = "google-services.json";
         }
 
         public class GoogleSignInRequest
@@ -49,5 +48,5 @@ namespace MetrixAPI.Models
         //    [Required]
         //    pubic string IdToken { get; set; } = string.Empty;
         //}
-    }
+    
 }
