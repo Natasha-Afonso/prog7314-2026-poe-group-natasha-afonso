@@ -3,7 +3,9 @@ using System.ComponentModel.DataAnnotations;
 namespace MetrixAPI.Models
 {
     //authModel has classes related to firebase, login and sign up
+    //AuthModel class all the data transfer object (classes) used for authentication
     
+    //sign up needs email and password
         public class SignUpRequest
         {
             [Required]
@@ -13,6 +15,7 @@ namespace MetrixAPI.Models
             public string Password { get; set; } = string.Empty;
         }
 
+    //sign in objects email and password
         public class SignInRequest
         {
             [Required]
@@ -22,6 +25,7 @@ namespace MetrixAPI.Models
             public string Password { get; set; } = string.Empty;
         }
 
+    //authresponse is returned by the API and sign in is successfull
         public class AuthResponse
         {
             public string Uid { get; set; } = string.Empty;
@@ -30,6 +34,7 @@ namespace MetrixAPI.Models
             public string RefreshToken { get; set; } = string.Empty;
         }
 
+    // points to the firebase project linking to the json credential file
         public class FirebaseSettings
         {
             public string ProjectId { get; set; } = string.Empty;
@@ -37,6 +42,7 @@ namespace MetrixAPI.Models
             public string ServiceAccountPath { get; set; } = "google-services.json";
         }
 
+    //for SSO returns the token taken to firebase
         public class GoogleSignInRequest
         {
             [Required]
@@ -50,3 +56,9 @@ namespace MetrixAPI.Models
         //}
     
 }
+
+/*References
+ 
+Watmore, J., 2018. Aspnet core registration login api. (Version 10.0) [Source Code]. Available at: < https://github.com/cornflourblue/aspnet-core-registration-login-api/blob/master/Dtos/UserDto.cs > [Accessed 17 September 2026]
+ 
+ */

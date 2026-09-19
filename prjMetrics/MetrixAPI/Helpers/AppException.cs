@@ -17,3 +17,8 @@ namespace MetrixAPI.Helpers
         }
     }
 }
+/*References
+ 
+Watmore, J., 2018. Aspnet core registration login api. (Version 10.0) [Source Code]. Available at: < https://github.com/cornflourblue/aspnet-core-registration-login-api/blob/master/Helpers/AppException.cs > [Accessed 17 September 2026]
+ 
+ */
