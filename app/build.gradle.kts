@@ -28,8 +28,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
         compose = true
@@ -57,6 +57,7 @@ dependencies {
     implementation("com.google.android.material:material:1.0.0")
     implementation ("com.google.android.material:material:1.12.0")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation (files("libs/samsung-health-data-api-1.1.0.aar"))
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
