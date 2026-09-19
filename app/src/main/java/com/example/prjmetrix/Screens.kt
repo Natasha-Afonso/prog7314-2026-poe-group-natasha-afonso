@@ -1,6 +1,7 @@
 package com.example.prjmetrix
 
 import android.app.Notification
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -107,8 +108,15 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.runtime.rememberCoroutineScope
 
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import com.samsung.android.sdk.health.data.error.HealthDataException
+import kotlinx.coroutines.launch
+import java.text.NumberFormat
 
 
 // DATA MODELS
@@ -240,6 +248,26 @@ fun HomeScreen() {
       )
    }
 
+   val context = LocalContext.current
+   val scope = rememberCoroutineScope()
+   val stepsRepo = remember { SamsungHealthStepsRepository(context.applicationContext) }
+   var todaySteps by remember { mutableStateOf<Long?>(null) }
+   var stepsPermissionGranted by remember { mutableStateOf(false) }
+
+   val refreshSteps: () -> Unit = {
+      scope.launch {
+         try {
+            stepsPermissionGranted = stepsRepo.hasPermissions()
+            if (stepsPermissionGranted) todaySteps = stepsRepo.readTodaySteps()
+         } catch (e: HealthDataException) {
+            Log.e("Steps", "Samsung Health error", e)
+         }
+      }
+   }
+
+// Runs on first launch and every time the app returns to the foreground
+   LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { refreshSteps() }
+
    val todayDateString = remember {
       SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date())
    }
@@ -353,13 +381,32 @@ fun HomeScreen() {
                   verticalAlignment = Alignment.CenterVertically,
                   horizontalArrangement = Arrangement.SpaceBetween
                ) {
-                  Column {
-                     Text(
-                        text = todayDateString,
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF8D6E63)
-                     )
+                  Column(modifier = Modifier.weight(1f)) {
+                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                           text = todayDateString,
+                           fontSize = 8.sp,
+                           fontWeight = FontWeight.Bold,
+                           color = Color(0xFF8D6E63),
+                           maxLines = 1
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        StepsChip(
+                           steps = todaySteps,
+                           hasPermission = stepsPermissionGranted,
+                           onConnectClick = {
+                              val activity = context.findActivity() ?: return@StepsChip
+                              scope.launch {
+                                 try {
+                                    stepsRepo.requestPermissions(activity)
+                                    refreshSteps()
+                                 } catch (e: HealthDataException) {
+                                    Log.e("Steps", "Permission request failed", e)
+                                 }
+                              }
+                           }
+                        )
+                     }
                      Text(
                         text = "Today's Quests",
                         fontSize = 10.sp,
@@ -953,7 +1000,42 @@ fun  NotificationCardItem(
    }
 }
 
+@Composable
+fun StepsChip(
+   steps: Long?,
+   hasPermission: Boolean,
+   onConnectClick: () -> Unit
+) {
+   val label = when {
+      !hasPermission -> "Connect"
+      steps == null -> "…"
+      else -> NumberFormat.getInstance().format(steps)
+   }
 
+   Row(
+      modifier = Modifier
+         .clip(RoundedCornerShape(50))
+         .background(Color(0xFFFFF3E0))
+         .clickable(enabled = !hasPermission) { onConnectClick() }
+         .padding(horizontal = 4.dp, vertical = 1.dp),
+      verticalAlignment = Alignment.CenterVertically
+   ) {
+      Icon(
+         imageVector = Icons.Default.DirectionsRun,
+         contentDescription = "Steps",
+         tint = Color(0xFFFFA726),
+         modifier = Modifier.size(8.dp)
+      )
+      Spacer(modifier = Modifier.width(2.dp))
+      Text(
+         text = label,
+         fontSize = 8.sp,
+         fontWeight = FontWeight.Bold,
+         color = Color(0xFF8D6E63),
+         maxLines = 1
+      )
+   }
+}
 
 // AVATAR PIE MENU
 @Composable
