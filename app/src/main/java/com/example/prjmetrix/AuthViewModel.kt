@@ -76,7 +76,7 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     fun signOut() {
         viewModelScope.launch {
             repository.signOut()
-            _uiState.value = AuthUiState()
+            _uiState.update{it.copy(isAuthenticated = false, errorMessage = null, isLoading = false)}
         }
     }
 

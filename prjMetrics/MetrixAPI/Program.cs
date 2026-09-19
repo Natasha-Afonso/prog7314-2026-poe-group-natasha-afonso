@@ -69,7 +69,8 @@ namespace MetrixAPI
                 app.MapOpenApi();
             }
 
-            app.UseHttpsRedirection();
+            //commenting this out because it was causing errors because  it expects https not http
+            //app.UseHttpsRedirection();
 
             app.UseAuthentication();
 

@@ -85,6 +85,7 @@ class AuthRepository(private val context: Context) {
                 GoogleIdTokenCredential.createFrom(result.credential.data)
             googleIdTokenCredential.idToken
         } catch (e: Exception) {
+            android.util.Log.e("AuthRepository", "Google credential retrieval failed", e)
             null
         }
     }
@@ -103,9 +104,11 @@ class AuthRepository(private val context: Context) {
                 Result.failure(Exception(readError(response)))
             }
         } catch (e: IOException) {
+            android.util.Log.e("AuthRepository", "Network error calling MeTrix API", e)
             Result.failure(Exception("Cannot reach MeTrix. Check your connection and try again."))
         } catch (e: Exception) {
-            Result.failure(Exception("Something went wrong. Please try again."))
+            android.util.Log.e("AuthRepository", "Unexpected error calling MeTrix API", e)
+            Result.failure(Exception("Something went wrong: ${e.message}"))
         }
     }
 

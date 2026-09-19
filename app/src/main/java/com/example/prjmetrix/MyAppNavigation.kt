@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,18 +35,26 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
         return
     }
 
+    //handles the login and logout ui clash
+    LaunchedEffect(uiState.isAuthenticated) {
+        val target = if(uiState.isAuthenticated) "settings" else "login"
+        val current = navController.currentBackStackEntry?.destination?.route
+        if (current != target)
+        {
+            navController.navigate(target) {
+                popUpTo(0) {inclusive = true}
+            }
+        }
+    }
+
+
     val startDestination =
-    if(uiState.isAuthenticated)
-    {
-        "home"
-    }
-    else
-    {
-        "login"
-    }
+    if(uiState.isAuthenticated) "settings" else "login"
 
 
-    NavHost(navController = navController, startDestination = "login", builder = {
+
+    NavHost(navController = navController,
+        startDestination , builder = {
         composable("login"){
             LoginScreen(modifier, navController, authViewModel)
         }
@@ -53,7 +62,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
             SignupScreen(modifier, navController, authViewModel)
         }
         composable("settings"){
-            SettingsScreen()
+            SettingsScreen(navController, authViewModel)
         }
     })
 }
