@@ -13,7 +13,10 @@
 .externalNativeBuild
 .cxx
 local.properties
-.vs/
-**/ .vs/
+/.vs
 /prjMetrics/MetrixAPI/obj
 /prjMetrics/MetrixAPI/obj/Release
+*.cache
+*.cache
+*.cache
+/prjMetrics/MetrixAPI/obj/Debug/net10.0
