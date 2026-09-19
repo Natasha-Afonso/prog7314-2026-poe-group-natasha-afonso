@@ -2,7 +2,6 @@ package com.example.prjmetrix.pages
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Column
@@ -37,14 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.stringResource
-import androidx.navigation.NavController
-import com.example.prjmetrix.AuthViewModel
 import com.example.prjmetrix.R
 
 // Colors matching the XML
@@ -55,22 +48,12 @@ val DividerGray = Color(0xFFDADFE1)
 val LinkTeal = Color(0xFF0F6E63)
 
 @Composable
-fun LoginScreen(
-    modifier: Modifier = Modifier,
-    navController: NavController,
-    authViewModel: AuthViewModel
-) {
+fun LoginScreen() {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var webClientId = stringResource(R.string.default_web_client_id)
-
-    val uiState by authViewModel.uiState.collectAsState()
 
     Scaffold(
-        modifier = modifier,
-        bottomBar = {
-            BottomBar(onSignUpClick = { navController.navigate("signup") })
-        },
+        bottomBar = { BottomBar() },
         containerColor = BgBlue
     ) { innerPadding ->
         Column(
@@ -171,42 +154,22 @@ fun LoginScreen(
                     .height(56.dp)
             )
 
-            //ui design for error message displaying
-            uiState.errorMessage?.let {message ->
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = message,
-                    color = Color(0xFFB00020),
-                    fontSize = 13.sp,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
             Spacer(modifier = Modifier.height(28.dp))
 
             // Sign in button
             Button(
-                onClick = { authViewModel.signIn(email, password)  },
-                enabled = !uiState.isLoading,
+                onClick = {  },
                 shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BrandBrown),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
             ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.height(20.dp).width(20.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        text = "Sign in",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    text = "Sign in",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -247,15 +210,13 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .height(68.dp)
                     .padding(top = 20.dp)
-                    .clickable(enabled = !uiState.isLoading) {
-                        authViewModel.signInWithGoogle(webClientId)}
             )
         }
     }
 }
 
 @Composable
-fun BottomBar(onSignUpClick: () -> Unit = {}) {
+fun BottomBar() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -273,13 +234,13 @@ fun BottomBar(onSignUpClick: () -> Unit = {}) {
             text = "Sign up",
             fontWeight = FontWeight.Bold,
             color = LinkTeal,
-            modifier = Modifier.padding(4.dp).clickable{onSignUpClick()}
+            modifier = Modifier.padding(4.dp)
         )
     }
 }
 
-//@Preview(showBackground = true)
-//@Composable
-//fun LoginScreenPreview() {
-//    LoginScreen()
-//}
+@Preview(showBackground = true)
+@Composable
+fun LoginScreenPreview() {
+    LoginScreen()
+}

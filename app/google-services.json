@@ -102,14 +102,6 @@
       },
       "oauth_client": [
         {
-          "client_id": "249837111480-3vmn3nsvpjo7sp0853lsg0214lcbig7v.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.prjmetrix",
-            "certificate_hash": "eea1fe26058f08d7e445ba5fb5d7ac42b9629ea0"
-          }
-        },
-        {
           "client_id": "249837111480-08ssfkn70fl51eugf78qogi2s8b51d62.apps.googleusercontent.com",
           "client_type": 3
         }
