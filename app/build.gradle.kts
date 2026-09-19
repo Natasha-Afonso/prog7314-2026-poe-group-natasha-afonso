@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.prjmetrix"
-        minSdk = 25
+        minSdk = 29
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -58,6 +58,7 @@ dependencies {
     implementation ("com.google.android.material:material:1.12.0")
     implementation("androidx.compose.material:material-icons-extended")
     implementation (files("libs/samsung-health-data-api-1.1.0.aar"))
+    implementation(libs.gson)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

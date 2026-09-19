@@ -16,3 +16,5 @@ local.properties
 /.vs
 /prjMetrics/MetrixAPI/obj
 /prjMetrics/MetrixAPI/obj/Release
+*.dll
+*.cache
