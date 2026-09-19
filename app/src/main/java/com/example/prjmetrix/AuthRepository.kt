@@ -19,7 +19,10 @@ import java.util.concurrent.TimeUnit
 
 class AuthRepository(private val context: Context) {
 
-    private val baseUrl = "http://localhost:5161"
+    //The actual URL is http://localhost:5151 - use this if you are running through your android phone
+    //if that fails then you need to use the IP address eg: http://192.168.x.x:5161
+    //if you are running on emulator then use this URL: http://10.0.2.2:5161
+    private val baseUrl = "http://10.0.2.2:5161"
 
     private val tokenStore = Token(context)
 
