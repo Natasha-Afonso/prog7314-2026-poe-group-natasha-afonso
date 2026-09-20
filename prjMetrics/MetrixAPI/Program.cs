@@ -6,6 +6,11 @@ using Microsoft.IdentityModel.Tokens;
 using MetrixAPI.Models;
 using MetrixAPI.Services;
 
+using MetrixAPI.Data;
+using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
+using MetrixAPI.Services;
+
 namespace MetrixAPI
 {
     //(TutorialsEU, 2022)
@@ -24,6 +29,10 @@ namespace MetrixAPI
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+            builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<UserIdentityService>();
+            builder.Services.AddScoped<SettingsService>();
 
             //configure firebase to map to the correct project id and key declared in appsettings
             var firebaseSettings = builder.Configuration.GetSection("Firebase").Get<FirebaseSettings>()
