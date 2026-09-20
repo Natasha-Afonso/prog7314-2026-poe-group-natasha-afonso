@@ -10,7 +10,7 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 //(Simplified Coding, 2021)
-interface HabitApi {
+interface HabitAPI {
 
     @GET("api/Habits")
     suspend fun getHabits(@Query("date") date: String): Response<List<HabitItemDto>>

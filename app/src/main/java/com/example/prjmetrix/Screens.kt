@@ -187,7 +187,8 @@ val sampleNewList = listOf(
 )
 @Composable
 fun HomeScreen() {
-
+   val context = LocalContext.current
+   val scope = rememberCoroutineScope()
    // STATE
    var userCoins by remember { mutableIntStateOf(1250) }
    var showNewsBoard by remember { mutableStateOf(false) }
@@ -205,24 +206,9 @@ fun HomeScreen() {
    var dailyRewardClaimed by remember { mutableStateOf(false) }
    var showRewardPopup by remember { mutableStateOf(false) }
 
-   val habitCircles = remember {
-      mutableStateListOf(
-         HabitCircle("water", "Drink Water", Icons.Default.WaterDrop, 0.6f, Color(0xFF29B6F6)),
-         HabitCircle("brush", "Brush Teeth", Icons.Default.Brush, 0.3f, Color(0xFF66BB6A)),
-         HabitCircle("cardio", "Cardio", Icons.Default.DirectionsRun, 0.85f, Color(0xFFFFA726))
-      )
-   }
+   val habitCircles = remember { mutableStateListOf<HabitCircle>() }
 
-   val todos = remember {
-      mutableStateListOf(
-         TodoItem("t1", "Drink water", habitId = "water"),
-         TodoItem("t2", "Pick an outfit", habitId = "brush"),
-         TodoItem("t3", "Cardio workout", habitId = "cardio"),
-         TodoItem("t4", "Read 10 pages"),
-         TodoItem("t5", "Meditate 5 mins"),
-         TodoItem("t6", "Organize desk")
-      )
-   }
+   val todos = remember { mutableStateListOf<TodoItem>() }
 
    // Auto-check sync when habit reaches 100%
    LaunchedEffect(habitCircles.map { it.progress }) {
@@ -236,6 +222,40 @@ fun HomeScreen() {
       }
    }
 
+   val habitApi = remember { HabitRepository(context).api }
+
+   suspend fun loadHabits() {
+      try {
+         val response = habitApi.getHabits(LocalDate.now().toString())
+         if (response.isSuccessful) {
+            val habits = response.body().orEmpty()
+            habitCircles.clear()
+            habitCircles.addAll(habits.take(3).map { it.toCircle() })
+            todos.clear()
+            todos.addAll(habits.mapIndexed { i, h -> h.toTodo(linkedToCircle = i < 3) })
+         } else {
+            Log.e("Habits", "Load failed: ${response.code()}")
+         }
+      } catch (e: Exception) {
+         Log.e("Habits", "Could not reach the API", e)
+      }
+   }
+
+   val saveProgress: (String, Float) -> Unit = { habitId, progress ->
+      scope.launch {
+         try {
+            val response = habitApi.updateProgress(
+               habitId.toInt(), progress, LocalDate.now().toString()
+            )
+            if (!response.isSuccessful) Log.e("Habits", "Save failed: ${response.code()}")
+         } catch (e: Exception) {
+            Log.e("Habits", "Could not save progress", e)
+         }
+      }
+   }
+
+   LaunchedEffect(Unit) { loadHabits() }
+
    // Pinned top 3 daily habits
    val pinnedHabits = todos.take(3)
    val otherHabits = todos.drop(3)
@@ -247,6 +267,8 @@ fun HomeScreen() {
       }
    }
 
+
+
    val pieMenuItems = habitCircles.mapIndexed { index, habit ->
       PieMenuItem(
          id = habit.id,
@@ -255,12 +277,12 @@ fun HomeScreen() {
          color = habit.color,
          onSelect = {
             habitCircles[index] = habit.copy(progress = 1f)
+            saveProgress(habit.id, 1f)
          }
       )
    }
 
-   val context = LocalContext.current
-   val scope = rememberCoroutineScope()
+
    val stepsRepo = remember { SamsungHealthStepsRepository(context.applicationContext) }
    var todaySteps by remember { mutableStateOf<Long?>(null) }
    var stepsPermissionGranted by remember { mutableStateOf(false) }
@@ -379,6 +401,7 @@ fun HomeScreen() {
                onClick = {
                   val newProg = (habit.progress + 0.25f).coerceAtMost(1f)
                   habitCircles[index] = habit.copy(progress = newProg)
+                  saveProgress(habit.id, newProg)
                }
             )
          }
@@ -489,6 +512,7 @@ fun HomeScreen() {
                         if (origIndex != -1) {
                            val updated = !todos[origIndex].done
                            todos[origIndex] = todos[origIndex].copy(done = updated)
+                           saveProgress(item.id, if (updated) 1f else 0f)
                            todos[origIndex].habitId?.let { hId ->
                               val hIndex = habitCircles.indexOfFirst { it.id == hId }
                               if (hIndex != -1) {
@@ -519,6 +543,7 @@ fun HomeScreen() {
                            if (origIndex != -1) {
                               val updated = !todos[origIndex].done
                               todos[origIndex] = todos[origIndex].copy(done = updated)
+                              saveProgress(item.id, if (updated) 1f else 0f)
                            }
                         })
                      }
@@ -714,8 +739,19 @@ fun HomeScreen() {
          },
          confirmButton = {
             TextButton(onClick = {
-               if (newHabitText.isNotBlank()) {
-                  todos.add(TodoItem(id = "t${todos.size + 1}", label = newHabitText.trim()))
+               val label = newHabitText.trim()
+               if (label.isNotBlank()) {
+                  scope.launch {
+                     try {
+                        val response = habitApi.createHabit(
+                           HabitItemDto(userId = currentUserId, label = label)
+                        )
+                        if (response.isSuccessful) loadHabits()
+                        else Log.e("Habits", "Create failed: ${response.code()}")
+                     } catch (e: Exception) {
+                        Log.e("Habits", "Could not create habit", e)
+                     }
+                  }
                }
                newHabitText = ""
                showAddHabitDialog = false
