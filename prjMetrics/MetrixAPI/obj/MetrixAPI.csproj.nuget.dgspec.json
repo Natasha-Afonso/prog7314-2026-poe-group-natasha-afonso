@@ -1,36 +1,29 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\emeris\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj": {}
+    "C:\\Users\\School Nats\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\emeris\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj": {
+    "C:\\Users\\School Nats\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\emeris\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj",
+        "projectUniqueName": "C:\\Users\\School Nats\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj",
         "projectName": "MetrixAPI",
-        "projectPath": "C:\\Users\\emeris\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj",
-        "packagesPath": "C:\\Users\\emeris\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\emeris\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\obj\\",
+        "projectPath": "C:\\Users\\School Nats\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\MetrixAPI.csproj",
+        "packagesPath": "C:\\Users\\School Nats\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\School Nats\\Documents\\GitHub\\prog7314-2026-poe-group-natasha-afonso\\prjMetrics\\MetrixAPI\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\emeris\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "C:\\Users\\School Nats\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
-            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {}
           }
@@ -45,13 +38,24 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.400"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net10.0": {
-          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
+            "Azure.Storage.Blobs": {
+              "target": "Package",
+              "version": "[12.29.2, )"
+            },
+            "FirebaseAuthentication.net": {
+              "target": "Package",
+              "version": "[4.1.0, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[10.0.12, )"
+            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[10.0.11, )"
@@ -59,6 +63,10 @@
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[10.2.3, )"
+            },
+            "System.IdentityModel.Tokens.Jwt": {
+              "target": "Package",
+              "version": "[8.23.0, )"
             }
           },
           "imports": [
@@ -80,7 +88,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
