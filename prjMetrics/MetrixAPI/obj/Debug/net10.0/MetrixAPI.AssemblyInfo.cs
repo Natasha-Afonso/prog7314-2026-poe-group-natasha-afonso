@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MetrixAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ea92b31c2c23128db20f8955620b42eb7f74faba")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+76fc2448118cb96096a01a03c307d66a4d90c9ab")]
 [assembly: System.Reflection.AssemblyProductAttribute("MetrixAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MetrixAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

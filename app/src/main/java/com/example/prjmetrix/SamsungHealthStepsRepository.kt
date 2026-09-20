@@ -9,6 +9,7 @@ import com.samsung.android.sdk.health.data.permission.AccessType
 import com.samsung.android.sdk.health.data.permission.Permission
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.DataTypes
+import com.samsung.android.sdk.health.data.request.LocalDateFilter
 import com.samsung.android.sdk.health.data.request.LocalTimeFilter
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -18,7 +19,8 @@ class SamsungHealthStepsRepository(appContext: Context) {
     private val store: HealthDataStore = HealthDataService.getStore(appContext)
 
     private val permissions = setOf(
-        Permission.of(DataTypes.STEPS, AccessType.READ)
+        Permission.of(DataTypes.STEPS, AccessType.READ),
+        Permission.of(DataTypes.STEPS_GOAL, AccessType.READ)
     )
 
     suspend fun hasPermissions(): Boolean =
@@ -42,6 +44,21 @@ class SamsungHealthStepsRepository(appContext: Context) {
         }
         return steps
     }
+
+    suspend fun readStepGoal(): Int {
+        val request = DataType.StepsGoalType.LAST.requestBuilder
+            .setLocalDateFilter(
+                LocalDateFilter.of(LocalDate.now(), LocalDate.now().plusDays(1))
+            )
+            .build()
+
+        var goal = 0
+        store.aggregateData(request).dataList.forEach { data ->
+            data.value?.let { goal = it }
+        }
+        return goal
+    }
+
 }
 
 fun Context.findActivity(): Activity? {

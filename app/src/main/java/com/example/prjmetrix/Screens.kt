@@ -1,6 +1,7 @@
 package com.example.prjmetrix
 
 import android.app.Notification
+import android.content.Context
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
@@ -117,6 +118,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.samsung.android.sdk.health.data.error.HealthDataException
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
+import java.time.LocalDate
+import java.time.LocalTime
 
 
 // DATA MODELS
@@ -144,6 +147,14 @@ data class NavigationItem(
    val timestamp: String ="Just now"
 )
 
+private  const val FALLBACK_STEP_GOAL = 6000
+
+private fun timeGreeting(): String = when (LocalTime.now().hour) {
+   in 5..11 -> "Good Morning"
+   in 12..16 -> "Good afternoon"
+   in 17..21 -> "Good evening"
+   else -> "Hello"
+}
 
 data class PieMenuItem(
    val id: String,
@@ -156,7 +167,7 @@ data class PieMenuItem(
 
 
 enum class NotificationType {
-   ALERT, REWARD,MILESTONE,Social
+   ALERT, REWARD,MILESTONE,Social,STEPS
 }
 val sampleNewList = listOf(
    NavigationItem(
@@ -253,12 +264,47 @@ fun HomeScreen() {
    val stepsRepo = remember { SamsungHealthStepsRepository(context.applicationContext) }
    var todaySteps by remember { mutableStateOf<Long?>(null) }
    var stepsPermissionGranted by remember { mutableStateOf(false) }
+   var prefs = remember {context.getSharedPreferences("metrix_prefs", Context.MODE_PRIVATE)}
+   var greetingShown by remember { mutableStateOf(false) }
 
    val refreshSteps: () -> Unit = {
       scope.launch {
          try {
             stepsPermissionGranted = stepsRepo.hasPermissions()
-            if (stepsPermissionGranted) todaySteps = stepsRepo.readTodaySteps()
+            if (stepsPermissionGranted) {
+               val steps = stepsRepo.readTodaySteps()
+               val goal = stepsRepo.readStepGoal().takeIf { it > 0 } ?: FALLBACK_STEP_GOAL
+               todaySteps = steps
+
+               // Greeting: once per app launch
+               if (!greetingShown) {
+                  greetingShown = true
+                  newsItems.add(
+                     0,
+                     NavigationItem(
+                        id = "steps_greeting_${System.currentTimeMillis()}",
+                        title = "${timeGreeting()}!",
+                        message = "You've taken ${NumberFormat.getInstance().format(steps)} steps so far today.",
+                        type = NotificationType.STEPS
+                     )
+                  )
+               }
+
+               // Goal milestone: once per day, even across app restarts
+               val today = LocalDate.now().toString()
+               if (steps >= goal && prefs.getString("goal_notified_date", null) != today) {
+                  prefs.edit().putString("goal_notified_date", today).apply()
+                  newsItems.add(
+                     0,
+                     NavigationItem(
+                        id = "steps_goal_$today",
+                        title = "GOAL REACHED!",
+                        message = "Congratulations, you've reached $goal steps! 🎉",
+                        type = NotificationType.MILESTONE
+                     )
+                  )
+               }
+            }
          } catch (e: HealthDataException) {
             Log.e("Steps", "Samsung Health error", e)
          }
@@ -924,6 +970,7 @@ fun  NotificationCardItem(
       NotificationType.REWARD -> Color(0xFFFFA726)//PURPLE
       NotificationType.MILESTONE -> Color(0xFF8B5CF6)
       NotificationType.Social -> Color(0xFF43A047)
+      NotificationType.STEPS -> Color(0xFF26A69)
    }
 
    val icon: ImageVector = when (item.type) {
@@ -931,6 +978,7 @@ fun  NotificationCardItem(
       NotificationType.REWARD -> Icons.Default.CardGiftcard
       NotificationType.MILESTONE -> Icons.Default.EmojiEvents
       NotificationType.Social -> Icons.Default.Groups
+      NotificationType.STEPS-> Icons.Default.DirectionsRun
    }
    Box(modifier = Modifier.fillMaxWidth()) {
       Card(
