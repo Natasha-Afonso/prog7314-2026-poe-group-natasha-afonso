@@ -13,10 +13,7 @@ import retrofit2.http.Query
 interface HabitApi {
 
     @GET("api/Habits")
-    suspend fun getHabits(
-        @Query("userId") userId: String,
-        @Query("date") date: String
-    ): Response<List<HabitItemDto>>
+    suspend fun getHabits(@Query("date") date: String): Response<List<HabitItemDto>>
 
     @POST("api/Habits")
     suspend fun createHabit(@Body body: HabitItemDto): Response<HabitItemDto>

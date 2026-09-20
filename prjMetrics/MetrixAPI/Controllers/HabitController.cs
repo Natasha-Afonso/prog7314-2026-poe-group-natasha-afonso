@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MetrixAPI.Models;
@@ -5,6 +6,7 @@ using MetrixAPI.Data;
 
 namespace MetrixAPI.Controllers;
 
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class HabitsController : ControllerBase
@@ -16,14 +18,17 @@ public class HabitsController : ControllerBase
         _context = context;
     }
 
-    // GET: api/Habits?userId=abc&date=2026-09-20
+    // Firebase user id from the token (the same claim AuthController.Me uses)
+    private string? CurrentUserId => User.FindFirst("user_id")?.Value;
+
+    // GET: api/Habits?date=2026-09-20
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<HabitItemDTO>>> GetHabits(
-        [FromQuery] string userId, [FromQuery] DateOnly? date)
+    public async Task<ActionResult<IEnumerable<HabitItemDTO>>> GetHabits([FromQuery] DateOnly? date)
     {
-        if (string.IsNullOrWhiteSpace(userId))
+        var userId = CurrentUserId;
+        if (userId == null)
         {
-            return BadRequest("userId is required.");
+            return Unauthorized();
         }
 
         var day = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
@@ -41,11 +46,17 @@ public class HabitsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<HabitItemDTO>> GetHabit(int id, [FromQuery] DateOnly? date)
     {
+        var userId = CurrentUserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
         var day = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
         var habit = await _context.Habits
             .Include(h => h.Logs.Where(l => l.LogDate == day))
-            .FirstOrDefaultAsync(h => h.Id == id);
+            .FirstOrDefaultAsync(h => h.Id == id && h.UserId == userId);
 
         if (habit == null)
         {
@@ -59,12 +70,18 @@ public class HabitsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> PutHabit(int id, HabitItemDTO habitItemDTO)
     {
+        var userId = CurrentUserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
         if (id != habitItemDTO.Id)
         {
             return BadRequest();
         }
 
-        var habit = await _context.Habits.FindAsync(id);
+        var habit = await _context.Habits.FirstOrDefaultAsync(h => h.Id == id && h.UserId == userId);
         if (habit == null)
         {
             return NotFound();
@@ -79,7 +96,7 @@ public class HabitsController : ControllerBase
         {
             await _context.SaveChangesAsync();
         }
-        catch (DbUpdateConcurrencyException) when (!HabitExists(id))
+        catch (DbUpdateConcurrencyException) when (!HabitExists(id, userId))
         {
             return NotFound();
         }
@@ -91,7 +108,13 @@ public class HabitsController : ControllerBase
     [HttpPut("{id}/progress")]
     public async Task<IActionResult> PutProgress(int id, [FromQuery] double progress, [FromQuery] DateOnly? date)
     {
-        if (!HabitExists(id))
+        var userId = CurrentUserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!HabitExists(id, userId))
         {
             return NotFound();
         }
@@ -117,14 +140,20 @@ public class HabitsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<HabitItemDTO>> PostHabit(HabitItemDTO habitItemDTO)
     {
-        if (string.IsNullOrWhiteSpace(habitItemDTO.UserId) || string.IsNullOrWhiteSpace(habitItemDTO.Label))
+        var userId = CurrentUserId;
+        if (userId == null)
         {
-            return BadRequest("userId and label are required.");
+            return Unauthorized();
+        }
+
+        if (string.IsNullOrWhiteSpace(habitItemDTO.Label))
+        {
+            return BadRequest("label is required.");
         }
 
         var habit = new Habit
         {
-            UserId = habitItemDTO.UserId,
+            UserId = userId,   // from the token, never from the client
             Label = habitItemDTO.Label.Trim(),
             IconKey = habitItemDTO.IconKey,
             ColorHex = habitItemDTO.ColorHex,
@@ -145,7 +174,13 @@ public class HabitsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteHabit(int id)
     {
-        var habit = await _context.Habits.FindAsync(id);
+        var userId = CurrentUserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var habit = await _context.Habits.FirstOrDefaultAsync(h => h.Id == id && h.UserId == userId);
         if (habit == null)
         {
             return NotFound();
@@ -157,9 +192,9 @@ public class HabitsController : ControllerBase
         return NoContent();
     }
 
-    private bool HabitExists(int id)
+    private bool HabitExists(int id, string userId)
     {
-        return _context.Habits.Any(e => e.Id == id);
+        return _context.Habits.Any(e => e.Id == id && e.UserId == userId);
     }
 
     // Expects Logs to be pre-filtered to a single day 
@@ -167,7 +202,6 @@ public class HabitsController : ControllerBase
         new HabitItemDTO
         {
             Id = habit.Id,
-            UserId = habit.UserId,
             Label = habit.Label,
             IconKey = habit.IconKey,
             ColorHex = habit.ColorHex,
