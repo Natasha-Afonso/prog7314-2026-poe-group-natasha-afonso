@@ -37,6 +37,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.prjmetrix.R
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.NavController
+import com.example.prjmetrix.AuthViewModel
 
 // Colors matching the XML
 val SettingsTitle = Color(0xFF16213E)
@@ -46,8 +51,12 @@ val DividerLight = Color(0xFFEEF1F3)
 val LogoutRed = Color(0xFFE85B4E)
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel
+) {
     var notificationsEnabled by remember { mutableStateOf(true) }
+    val uiState by authViewModel.uiState.collectAsState()
 
     Scaffold(
         containerColor = BgBlue
@@ -232,7 +241,8 @@ fun SettingsScreen() {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Log out card
+            // Log out button
+            //(Easy Tuto, 2024)
             Card(
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -240,6 +250,7 @@ fun SettingsScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
+                    .clickable{authViewModel.signOut()}
             ) {
                 Text(
                     text = "Log Out",
@@ -310,8 +321,15 @@ fun SettingsRow(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun SettingsScreenPreview() {
-    SettingsScreen()
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun SettingsScreenPreview() {
+//    SettingsScreen()
+//}
+
+/*References
+*
+* Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
+*
+*
+* */
