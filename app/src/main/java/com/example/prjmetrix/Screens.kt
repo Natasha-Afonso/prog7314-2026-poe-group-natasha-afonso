@@ -185,8 +185,37 @@ val sampleNewList = listOf(
       timestamp = "Just now"
    )
 )
+fun iconForKey(key: String): ImageVector = when (key) {
+   "water" -> Icons.Default.WaterDrop
+   "brush" -> Icons.Default.Brush
+   "cardio" -> Icons.Default.DirectionsRun
+   else -> Icons.Default.Check
+}
+
+fun colorFromHex(hex: String): Color =
+   runCatching { Color(android.graphics.Color.parseColor(hex)) }
+      .getOrDefault(Color(0xFF29B6F6))
+
+fun HabitItemDto.toCircle() = HabitCircle(
+   id = id.toString(),
+   label = label,
+   icon = iconForKey(iconKey),
+   progress = progress,
+   color = colorFromHex(colorHex)
+)
+
+fun HabitItemDto.toTodo(linkedToCircle: Boolean) = TodoItem(
+   id = id.toString(),
+   label = label,
+   coinReward = coinReward,
+   done = progress >= 1f,
+   habitId = if (linkedToCircle) id.toString() else null
+)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+   onMoreClick: () -> Unit ={},
+   onSessionExpired: () -> Unit = {}
+) {
    val context = LocalContext.current
    val scope = rememberCoroutineScope()
    // STATE
@@ -235,6 +264,7 @@ fun HomeScreen() {
             todos.addAll(habits.mapIndexed { i, h -> h.toTodo(linkedToCircle = i < 3) })
          } else {
             Log.e("Habits", "Load failed: ${response.code()}")
+            if (response.code() == 401) onSessionExpired()
          }
       } catch (e: Exception) {
          Log.e("Habits", "Could not reach the API", e)
@@ -422,7 +452,7 @@ fun HomeScreen() {
             showNewsBoard = !showNewsBoard
          },
          onProfileClick = { },
-         onMoreClick = { }
+         onMoreClick = onMoreClick
       )
 
       // SINGLE ALL-IN-ONE QUEST & HABITS CONTAINER
@@ -744,7 +774,7 @@ fun HomeScreen() {
                   scope.launch {
                      try {
                         val response = habitApi.createHabit(
-                           HabitItemDto(userId = currentUserId, label = label)
+                           HabitItemDto( label = label)
                         )
                         if (response.isSuccessful) loadHabits()
                         else Log.e("Habits", "Create failed: ${response.code()}")

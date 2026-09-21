@@ -71,7 +71,7 @@ fun SignupScreen(
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated)
         {
-            navController.navigate("settings") {
+            navController.navigate("home") {
                 popUpTo("login") {inclusive = true}
             }
         }

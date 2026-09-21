@@ -42,17 +42,21 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 
     //handles the login and logout ui clash
     LaunchedEffect(uiState.isAuthenticated) {
-        val target = if (uiState.isAuthenticated) "settings" else "login"
+        val target = if(uiState.isAuthenticated) "home" else "login"
         val current = navController.currentBackStackEntry?.destination?.route
-        if (current != target) {
+        if (current != target)
+        {
             navController.navigate(target) {
-                popUpTo(0) { inclusive = true }
+                popUpTo(0) {inclusive = true}
             }
         }
     }
 
+
     //the starting screen of the app should be the home if not the user goes to login
-    val startDestination = if (uiState.isAuthenticated) "settings" else "login"
+    val startDestination =
+    if(uiState.isAuthenticated) "home" else "login"
+
 
     //navigation code for each screen
     NavHost(
@@ -66,7 +70,13 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
         composable("signup") {
             SignupScreen(modifier, navController, authViewModel)
         }
-        composable("settings") {
+            composable("home") {
+                HomeScreen(
+                    onMoreClick = { navController.navigate("settings") },
+                    onSessionExpired = {authViewModel.signOut() }
+                )
+            }
+        composable("settings"){
             SettingsScreen(navController, authViewModel)
         }
         composable("journalcover") {

@@ -28,7 +28,7 @@ data class BugReportRequest(
 
 data class RatingRequest(
     val rating: Int,
-    val comment: String?
+    val comment: String? = null
 )
 
 interface SettingsApi {
