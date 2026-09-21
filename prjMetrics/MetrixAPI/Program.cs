@@ -11,6 +11,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using MetrixAPI.Services;
 
+using MetrixAPI.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace MetrixAPI
 {
     //(TutorialsEU, 2022)
@@ -26,6 +29,11 @@ namespace MetrixAPI
             // Added Swagger generation services
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+          // Add services to the container.
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(Environment.GetEnvironmentVariable("SQL_CONNECTION_STRING")));
+
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
