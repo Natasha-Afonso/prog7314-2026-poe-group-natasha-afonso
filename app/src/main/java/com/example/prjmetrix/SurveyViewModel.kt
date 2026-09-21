@@ -86,7 +86,7 @@ class SurveyViewModel(private val profileApi: ProfileApi) : ViewModel() {
             errorMessage = null
             try {
                 val response = profileApi.saveProfile(
-                    ProfileDto(
+                    ProfileItemDTO(
                         displayName = nickname.trim(),
                         personality = personality,
                         birthday = birthday?.toString()
@@ -112,7 +112,7 @@ class SurveyViewModel(private val profileApi: ProfileApi) : ViewModel() {
 class SurveyViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val profileApi = HabitRepository(context.applicationContext).profileApi
+        val profileApi = ProfileRepository(context.applicationContext).api
         return SurveyViewModel(profileApi) as T
     }
 }

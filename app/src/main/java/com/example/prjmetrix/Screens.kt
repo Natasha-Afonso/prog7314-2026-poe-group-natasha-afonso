@@ -109,6 +109,8 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.rememberCoroutineScope
 
 import androidx.compose.ui.draw.alpha
@@ -213,7 +215,7 @@ fun HabitItemDto.toTodo(linkedToCircle: Boolean) = TodoItem(
 )
 @Composable
 fun HomeScreen(
-   onMoreClick: () -> Unit ={},
+   onSettingsClick: () -> Unit ={},
    onSessionExpired: () -> Unit = {}
 ) {
    val context = LocalContext.current
@@ -231,6 +233,8 @@ fun HomeScreen(
    var selectedMood by remember { mutableStateOf<String?>(null) }
    var avatarRootPosition by remember { mutableStateOf(Offset.Zero) }
    var pieMenuCenter by remember { mutableStateOf<Offset?>(null) }
+var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
+
 
    var dailyRewardClaimed by remember { mutableStateOf(false) }
    var showRewardPopup by remember { mutableStateOf(false) }
@@ -238,6 +242,7 @@ fun HomeScreen(
    val habitCircles = remember { mutableStateListOf<HabitCircle>() }
 
    val todos = remember { mutableStateListOf<TodoItem>() }
+
 
    // Auto-check sync when habit reaches 100%
    LaunchedEffect(habitCircles.map { it.progress }) {
@@ -380,32 +385,69 @@ fun HomeScreen(
          contentScale = ContentScale.FillHeight
       )
 
+      if (isEditMode) {
+         Row(
+            modifier = Modifier
+               .fillMaxWidth()
+               .statusBarsPadding()
+               .padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.End
+         ) {
+            Button(
+               onClick = {
+                  isEditMode = false
+               },
+               shape = RoundedCornerShape(50),
+               colors = ButtonDefaults.buttonColors(
+                  containerColor = Color.White.copy(alpha = 0.9f),
+                  contentColor = Color(0xFF6D4C41)
+               )
+            ) {
+               Icon(
+                  imageVector = Icons.Default.Check,
+                  contentDescription = "Save",
+                  modifier = Modifier.size(16.dp)
+               )
+
+               Spacer(modifier = Modifier.width(4.dp))
+
+               Text(
+                  text = "Done",
+                  fontSize = 11.sp,
+                  fontWeight = FontWeight.Bold
+               )
+            }
+         }
+      }
+
       // Avatar Shadow
-      Box(
-         modifier = Modifier
-            .width(90.dp).height(16.dp)
-            .align(Alignment.Center).offset(y = 232.dp)
-            .clip(RoundedCornerShape(50))
-            .background(Color.Black.copy(alpha = 0.18f))
-      )
-
-      // Avatar Layer
-      Image(
-         painter = painterResource(id = R.drawable.base_body_f),
-         contentDescription = "Avatar",
-         modifier = Modifier
-            .fillMaxWidth()
-            .height(500.dp)
-            .align(Alignment.Center)
-            .onGloballyPositioned { coords -> avatarRootPosition = coords.positionInRoot() }
-            .pointerInput(Unit) {
-               detectTapGestures(onTap = { local ->
-                  pieMenuCenter = avatarRootPosition + local
-               })
-            },
-         contentScale = ContentScale.FillHeight
-      )
-
+      if (!isEditMode) {
+         Box(
+            modifier = Modifier
+               .width(90.dp).height(16.dp)
+               .align(Alignment.Center).offset(y = 232.dp)
+               .clip(RoundedCornerShape(50))
+               .background(Color.Black.copy(alpha = 0.18f))
+         )
+      }
+      if (!isEditMode) {
+         // Avatar Layer
+         Image(
+            painter = painterResource(id = R.drawable.base_body_f),
+            contentDescription = "Avatar",
+            modifier = Modifier
+               .fillMaxWidth()
+               .height(500.dp)
+               .align(Alignment.Center)
+               .onGloballyPositioned { coords -> avatarRootPosition = coords.positionInRoot() }
+               .pointerInput(Unit) {
+                  detectTapGestures(onTap = { local ->
+                     pieMenuCenter = avatarRootPosition + local
+                  })
+               },
+            contentScale = ContentScale.FillHeight
+         )
+      }
       Image(
          painter = painterResource(id = R.drawable.blue_lamp),
          contentDescription = "Blue lamp",
@@ -416,45 +458,53 @@ fun HomeScreen(
          contentScale = ContentScale.Fit
       )
 
-      // LIQUID HABIT CIRCLES
-      Column(
-         modifier = Modifier.align(Alignment.TopEnd).offset(x = (-16).dp, y = 210.dp),
-         verticalArrangement = Arrangement.spacedBy(18.dp),
-         horizontalAlignment = Alignment.End
-      ) {
-         habitCircles.forEachIndexed { index, habit ->
-            LiquidHabitCircle(
-               label = habit.label,
-               icon = habit.icon,
-               progress = habit.progress,
-               liquidColor = habit.color,
-               onClick = {
-                  val newProg = (habit.progress + 0.25f).coerceAtMost(1f)
-                  habitCircles[index] = habit.copy(progress = newProg)
-                  saveProgress(habit.id, newProg)
-               }
-            )
+      if (!isEditMode) {
+         // LIQUID HABIT CIRCLES
+         Column(
+            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-16).dp, y = 210.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+            horizontalAlignment = Alignment.End
+         ) {
+            habitCircles.forEachIndexed { index, habit ->
+               LiquidHabitCircle(
+                  label = habit.label,
+                  icon = habit.icon,
+                  progress = habit.progress,
+                  liquidColor = habit.color,
+                  onClick = {
+                     val newProg = (habit.progress + 0.25f).coerceAtMost(1f)
+                     habitCircles[index] = habit.copy(progress = newProg)
+                     saveProgress(habit.id, newProg)
+                  }
+               )
+            }
          }
       }
 
-      // TOP APP BAR
-      JetpackTopNavbar(
-         coins = userCoins,
-         todoCount = todos.count { !it.done },
-         todoPanelOpen = isQuestCardVisible,
-         hasUnreadNews = newsItems.isNotEmpty(),
-         newsBoardOpen = showNewsBoard,
-         onTodoClick = {
-            // Toggle visibility on menu button tap
-            isQuestCardVisible = !isQuestCardVisible
-         },
-         onNewsClick = {
-            showNewsBoard = !showNewsBoard
-         },
-         onProfileClick = { },
-         onMoreClick = onMoreClick
-      )
+      if (!isEditMode) {
+         // TOP APP BAR
+         JetpackTopNavbar(
+            coins = userCoins,
+            todoCount = todos.count { !it.done },
+            todoPanelOpen = isQuestCardVisible,
+            hasUnreadNews = newsItems.isNotEmpty(),
+            newsBoardOpen = showNewsBoard,
+            onTodoClick = {
+               // Toggle visibility on menu button tap
+               isQuestCardVisible = !isQuestCardVisible
+            },
+            onNewsClick = {
+               showNewsBoard = !showNewsBoard
+            },
+            onProfileClick = { },
+            onEditClick = {
+               isEditMode = true
+            },
+            onSettingsClick = onSettingsClick
+         )
+      }
 
+      if (!isEditMode) {
       // SINGLE ALL-IN-ONE QUEST & HABITS CONTAINER
       AnimatedVisibility(
          visible = isQuestCardVisible,
@@ -546,12 +596,14 @@ fun HomeScreen(
                            todos[origIndex].habitId?.let { hId ->
                               val hIndex = habitCircles.indexOfFirst { it.id == hId }
                               if (hIndex != -1) {
-                                 habitCircles[hIndex] = habitCircles[hIndex].copy(progress = if (updated) 1f else 0f)
+                                 habitCircles[hIndex] =
+                                    habitCircles[hIndex].copy(progress = if (updated) 1f else 0f)
                               }
                            }
                         }
                      })
                   }
+               }
 
                   // EXPANDED PORTION: Divider + Remaining Habits
                   if (isQuestCardExpanded) {
@@ -623,126 +675,154 @@ fun HomeScreen(
          }
       }
 
-      // REWARD CLAIM POPUP
-      if (showRewardPopup) {
-         Card(
-            modifier = Modifier
-               .width(180.dp)
-               .align(Alignment.TopStart)
-               .offset(x = 8.dp, y = 250.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
-            border = BorderStroke(2.dp, Color(0xFFFBC02D)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
-         ) {
-            Column(
-               modifier = Modifier.padding(10.dp),
-               horizontalAlignment = Alignment.CenterHorizontally
+      if (!isEditMode) {
+         // REWARD CLAIM POPUP
+         if (showRewardPopup) {
+            Card(
+               modifier = Modifier
+                  .width(180.dp)
+                  .align(Alignment.TopStart)
+                  .offset(x = 8.dp, y = 250.dp),
+               shape = RoundedCornerShape(14.dp),
+               colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
+               border = BorderStroke(2.dp, Color(0xFFFBC02D)),
+               elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
             ) {
-               Text("✨ Quests Complete! ✨", fontWeight = FontWeight.ExtraBold, fontSize = 10.sp, color = Color(0xFFF57F17))
-               Spacer(modifier = Modifier.height(2.dp))
-               Text("Completed today's 3 habits!", fontSize = 8.5.sp, color = Color(0xFF5D4037))
-               Spacer(modifier = Modifier.height(6.dp))
-               Button(
-                  onClick = {
-                     userCoins += 500
-                     dailyRewardClaimed = true
-                     showRewardPopup = false
-                  },
-                  colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFBC02D)),
-                  shape = RoundedCornerShape(50)
+               Column(
+                  modifier = Modifier.padding(10.dp),
+                  horizontalAlignment = Alignment.CenterHorizontally
                ) {
-                  Text("Claim 🪙 500", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 9.5.sp)
-               }
-            }
-         }
-      }
-
-      // NEWS BOARD
-      AnimatedVisibility(
-         visible = showNewsBoard,
-         modifier = Modifier.align(Alignment.TopEnd).offset(x = (-12).dp, y = 80.dp),
-         enter = expandVertically(),
-         exit = shrinkVertically()
-      ) {
-         NewsBoard(
-            newsList = newsItems,
-            onDismissItem = {id -> newsItems.removeAll {it.id == id} },
-            onClearAll = {newsItems.clear()},
-            onClose = { showNewsBoard = false })
-      }
-
-      // BOTTOM CARD
-      Card(
-         modifier = Modifier
-            .fillMaxWidth().height(180.dp)
-            .padding(horizontal = 14.dp)
-            .align(Alignment.BottomCenter)
-            .offset(y = (-10).dp),
-         shape = RoundedCornerShape(18.dp),
-         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
-         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-      ) {
-         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)
-         ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-               Text(
-                  text = if (selectedMood == null) "ADD YOUR MOOD" else "HAPPINESS: EXTREMELY DELULU ✨",
-                  fontSize = 12.sp,
-                  fontWeight = FontWeight.ExtraBold,
-                  color = Color(0xFF43302E),
-                  modifier = Modifier.weight(1f)
-               )
-               Icon(Icons.Default.KeyboardArrowUp, contentDescription = null, tint = Color(0xFF64748B))
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (selectedMood != null) {
-               LinearProgressIndicator(
-                  progress = { 0.85f },
-                  color = Color(0xFF00BCD4),
-                  modifier = Modifier.fillMaxWidth().height(9.dp)
-               )
-               Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            Row(
-               modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-               horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-               listOf("😃", "😔", "😐", "😍", "😆", "😎", "😶","😡").forEach { emoji ->
-                  Card(
-                     modifier = Modifier.size(36.dp),
-                     shape = RoundedCornerShape(9.dp),
-                     colors = CardDefaults.cardColors(
-                        containerColor = if (emoji == selectedMood) Color(0xFFB2EBF2) else Color(0xFFE2E8F0)
-                     ),
-                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                     border = if (emoji == selectedMood) BorderStroke(1.5.dp, Color(0xFF00BCD4)) else null
+                  Text(
+                     "✨ Quests Complete! ✨",
+                     fontWeight = FontWeight.ExtraBold,
+                     fontSize = 10.sp,
+                     color = Color(0xFFF57F17)
+                  )
+                  Spacer(modifier = Modifier.height(2.dp))
+                  Text("Completed today's 3 habits!", fontSize = 8.5.sp, color = Color(0xFF5D4037))
+                  Spacer(modifier = Modifier.height(6.dp))
+                  Button(
+                     onClick = {
+                        userCoins += 500
+                        dailyRewardClaimed = true
+                        showRewardPopup = false
+                     },
+                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFBC02D)),
+                     shape = RoundedCornerShape(50)
                   ) {
-                     Box(
-                        modifier = Modifier.fillMaxSize().clickable { selectedMood = emoji },
-                        contentAlignment = Alignment.Center
-                     ) {
-                        Text(text = emoji, fontSize = 17.sp)
-                     }
+                     Text(
+                        "Claim 🪙 500",
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.5.sp
+                     )
                   }
                }
             }
-
-            if (selectedMood == null) {
-               Spacer(modifier = Modifier.height(8.dp))
-               Text(
-                  text = "Tap an emoji to log today's mood",
-                  fontSize = 10.sp,
-                  color = Color(0xFF90A4AE)
-               )
-            }
          }
       }
 
+      if (!isEditMode) {
+         // NEWS BOARD
+         AnimatedVisibility(
+            visible = showNewsBoard,
+            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-12).dp, y = 80.dp),
+            enter = expandVertically(),
+            exit = shrinkVertically()
+         ) {
+            NewsBoard(
+               newsList = newsItems,
+               onDismissItem = { id -> newsItems.removeAll { it.id == id } },
+               onClearAll = { newsItems.clear() },
+               onClose = { showNewsBoard = false })
+         }
+      }
+
+      if (!isEditMode) {
+         // BOTTOM CARD
+         Card(
+            modifier = Modifier
+               .fillMaxWidth().height(180.dp)
+               .padding(horizontal = 14.dp)
+               .align(Alignment.BottomCenter)
+               .offset(y = (-10).dp),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+         ) {
+            Column(
+               modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                  .padding(12.dp)
+            ) {
+               Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  verticalAlignment = Alignment.CenterVertically
+               ) {
+                  Text(
+                     text = if (selectedMood == null) "ADD YOUR MOOD" else "HAPPINESS: EXTREMELY DELULU ✨",
+                     fontSize = 12.sp,
+                     fontWeight = FontWeight.ExtraBold,
+                     color = Color(0xFF43302E),
+                     modifier = Modifier.weight(1f)
+                  )
+                  Icon(
+                     Icons.Default.KeyboardArrowUp,
+                     contentDescription = null,
+                     tint = Color(0xFF64748B)
+                  )
+               }
+
+               Spacer(modifier = Modifier.height(8.dp))
+
+               if (selectedMood != null) {
+                  LinearProgressIndicator(
+                     progress = { 0.85f },
+                     color = Color(0xFF00BCD4),
+                     modifier = Modifier.fillMaxWidth().height(9.dp)
+                  )
+                  Spacer(modifier = Modifier.height(12.dp))
+               }
+
+               Row(
+                  modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                  horizontalArrangement = Arrangement.spacedBy(6.dp)
+               ) {
+                  listOf("😃", "😔", "😐", "😍", "😆", "😎", "😶", "😡").forEach { emoji ->
+                     Card(
+                        modifier = Modifier.size(36.dp),
+                        shape = RoundedCornerShape(9.dp),
+                        colors = CardDefaults.cardColors(
+                           containerColor = if (emoji == selectedMood) Color(0xFFB2EBF2) else Color(
+                              0xFFE2E8F0
+                           )
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = if (emoji == selectedMood) BorderStroke(
+                           1.5.dp,
+                           Color(0xFF00BCD4)
+                        ) else null
+                     ) {
+                        Box(
+                           modifier = Modifier.fillMaxSize().clickable { selectedMood = emoji },
+                           contentAlignment = Alignment.Center
+                        ) {
+                           Text(text = emoji, fontSize = 17.sp)
+                        }
+                     }
+                  }
+               }
+
+               if (selectedMood == null) {
+                  Spacer(modifier = Modifier.height(8.dp))
+                  Text(
+                     text = "Tap an emoji to log today's mood",
+                     fontSize = 10.sp,
+                     color = Color(0xFF90A4AE)
+                  )
+               }
+            }
+         }
+      }
       // AVATAR PIE MENU
       pieMenuCenter?.let { center ->
          AvatarPieMenu(
@@ -1224,8 +1304,12 @@ fun JetpackTopNavbar(
    onTodoClick: () -> Unit,
    onNewsClick: () -> Unit,
    onProfileClick: () -> Unit,
-   onMoreClick: () -> Unit
+   onEditClick: () -> Unit,
+   onSettingsClick: () -> Unit
 ) {
+   var showMoreMenu by remember { mutableStateOf(false) }
+
+
    Row(
       modifier = Modifier
          .fillMaxWidth()
@@ -1264,7 +1348,7 @@ fun JetpackTopNavbar(
          }
       }
 
-      // RIGHT ANCHOR
+      // Right Side
       Row(
          modifier = Modifier
             .height(IntrinsicSize.Min)
@@ -1274,8 +1358,47 @@ fun JetpackTopNavbar(
          verticalAlignment = Alignment.CenterVertically
       ) {
          Box {
-            NavStripIcon(onClick = onMoreClick, trailingPadding = 6.dp) {
-               Icon(Icons.Default.MoreVert, contentDescription = "More", tint = NavbarIcon, modifier = Modifier.size(19.dp))
+            NavStripIcon(
+               onClick = { showMoreMenu = true },
+               trailingPadding = 6.dp
+            ) {
+               Icon(
+                  Icons.Default.MoreVert,
+                  contentDescription = "More",
+                  tint = NavbarIcon,
+                  modifier = Modifier.size(19.dp)
+               )
+            }
+
+            DropdownMenu(
+               expanded = showMoreMenu,
+               onDismissRequest = { showMoreMenu = false }
+            ) {
+               DropdownMenuItem(
+                  text = {
+                     Text(
+                        text = "Edit Room",
+                        fontSize = 12.sp
+                     )
+                  },
+                  onClick = {
+                     showMoreMenu = false
+                     onEditClick()
+                  }
+               )
+
+               DropdownMenuItem(
+                  text = {
+                     Text(
+                        text = "Settings",
+                        fontSize = 12.sp
+                     )
+                  },
+                  onClick = {
+                     showMoreMenu = false
+                     onSettingsClick()
+                  }
+               )
             }
          }
 

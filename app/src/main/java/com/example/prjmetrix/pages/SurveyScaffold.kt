@@ -29,6 +29,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.prjmetrix.SurveyOptions
+import com.example.prjmetrix.SurveyViewModel
+import com.example.prjmetrix.SurveyViewModelFactory
+import com.example.prjmetrix.surveyQuestions
 
 private const val stronglyDeemphasizedAlpha = 0.6f
 private const val slightlyDeemphasizedAlpha = 0.87f
