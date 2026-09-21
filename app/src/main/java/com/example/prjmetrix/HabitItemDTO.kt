@@ -5,6 +5,6 @@ data class HabitItemDto(
     val label: String = "",
     val iconKey: String = "default",
     val colorHex: String = "#29B6F6",
-    val coinReward: Int = 5,
+    val goldCoins: Int = 5,
     val progress: Float = 0f
 )
