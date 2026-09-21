@@ -29,12 +29,17 @@ namespace MetrixAPI
 
           // Add services to the container.
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(Environment.GetEnvironmentVariable("SQL_CONNECTION_STRING")));
+{
+    var connectionString = Environment.GetEnvironmentVariable("SQL_CONNECTION_STRING")
+        ?? builder.Configuration.GetConnectionString("SQL_CONNECTION_STRING");
+
+    options.UseSqlServer(connectionString);
+});
 
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
-            builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+           
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<IUserIdentityService,UserIdentityService>();
             builder.Services.AddScoped<SettingsService>();
