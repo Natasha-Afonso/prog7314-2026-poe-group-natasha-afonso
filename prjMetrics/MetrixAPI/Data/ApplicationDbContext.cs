@@ -12,8 +12,9 @@ namespace MetrixAPI.Data
         public DbSet<BugReport> BugReports { get; set; }
 
         public DbSet<AppRating> AppRatings { get; set; }
+        public DbSet<Journal> Journal { get; set; }
 
-       
+
         // public DbSet<CalendarEvent> CalendarEvents { get; set; }
         // public DbSet<Outfit> Outfits { get; set; }
         // public DbSet<ClothingItem> ClothingItems { get; set; }
