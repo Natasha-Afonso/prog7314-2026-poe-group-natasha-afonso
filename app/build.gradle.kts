@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.gms.google.services)
-    //alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.parcelize)
 }
 
 android {
@@ -70,6 +70,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.navigation:navigation-compose:2.8.4")
     implementation (files("libs/samsung-health-data-api-1.1.0.aar"))
+    implementation(libs.kotlin.parcelize.runtime)
     implementation(libs.gson)
     implementation(libs.androidx.lifecycle.runtime.compose)
     testImplementation(libs.junit)
