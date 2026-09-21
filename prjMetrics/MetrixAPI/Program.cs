@@ -9,10 +9,7 @@ using MetrixAPI.Services;
 using MetrixAPI.Data;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
-using MetrixAPI.Services;
 
-using MetrixAPI.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace MetrixAPI
 {
@@ -40,7 +37,7 @@ namespace MetrixAPI
             builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<UserIdentityService>();
-            builder.Services.AddScoped<SettingsService>();
+           // builder.Services.AddScoped<SettingsService>();
 
             //configure firebase to map to the correct project id and key declared in appsettings
             var firebaseSettings = builder.Configuration.GetSection("Firebase").Get<FirebaseSettings>()

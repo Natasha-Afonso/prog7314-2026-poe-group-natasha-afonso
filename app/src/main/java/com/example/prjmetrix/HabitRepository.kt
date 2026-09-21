@@ -5,7 +5,7 @@ import android.content.Context
 
 class HabitRepository(private val context: Context) {
 
-    private val api: HabitAPI by lazy {
+    val api: HabitAPI by lazy {
         NetworkRepository.create(context, HabitAPI::class.java)
     }
 
