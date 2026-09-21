@@ -9,7 +9,7 @@ class HabitRepository(private val context: Context) {
         NetworkRepository.create(context, HabitAPI::class.java)
     }
 
-    private val tokenStore = Token(context.applicationContext)
+
 
 }
 
