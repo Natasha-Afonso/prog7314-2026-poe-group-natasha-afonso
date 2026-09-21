@@ -20,6 +20,11 @@ namespace MetrixAPI.Data
         // public DbSet<ClothingItem> ClothingItems { get; set; }
         // public DbSet<WishlistItem> WishlistItems { get; set; }
         // public DbSet<WeeklyMagazine> WeeklyMagazines { get; set; }
+
+
+        //Habits
+          public DbSet<Habit> Habits { get; set; }
+        public DbSet<HabitLog> HabitLogs { get; set; }
     }
 }
 
