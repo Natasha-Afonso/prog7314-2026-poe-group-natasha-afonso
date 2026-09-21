@@ -207,7 +207,7 @@ fun HabitItemDto.toCircle() = HabitCircle(
 fun HabitItemDto.toTodo(linkedToCircle: Boolean) = TodoItem(
    id = id.toString(),
    label = label,
-   coinReward = coinReward,
+   coinReward = goldCoins,
    done = progress >= 1f,
    habitId = if (linkedToCircle) id.toString() else null
 )
