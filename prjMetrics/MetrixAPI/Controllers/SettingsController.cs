@@ -1,7 +1,6 @@
-// //using MetrixAPI.DTOs;
-// using MetrixAPI.Services;
-// using Microsoft.AspNetCore.Authorization;
-// using Microsoft.AspNetCore.Mvc;
+using MetrixAPI.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 // namespace MetrixAPI.Controllers
 // {
@@ -23,50 +22,50 @@
 //             return Ok(await _settingsService.GetSettingsAsync());
 //         }
 
-//         [HttpPut("language")]
-//         public async Task<IActionResult> UpdateLanguage(
-//             [FromBody] UpdateLanguageDto dto)
-//         {
-//             return Ok(
-//                 await _settingsService.UpdateLanguageAsync(dto));
-//         }
+        [HttpPut("language")]
+        public async Task<IActionResult> UpdateLanguage(
+            [FromBody] string language)
+        {
+            return Ok(
+                await _settingsService.UpdateLanguageAsync(language));
+        }
 
-//         [HttpPut("theme")]
-//         public async Task<IActionResult> UpdateTheme(
-//             [FromBody] UpdateThemeDto dto)
-//         {
-//             return Ok(
-//                 await _settingsService.UpdateThemeAsync(dto));
-//         }
+        [HttpPut("theme")]
+        public async Task<IActionResult> UpdateTheme(
+            [FromBody] string theme)
+        {
+            return Ok(
+                await _settingsService.UpdateThemeAsync(theme));
+        }
 
-//         [HttpPut("notifications")]
-//         public async Task<IActionResult> UpdateNotifications(
-//             [FromBody] UpdateNotificationsDto dto)
-//         {
-//             return Ok(
-//                 await _settingsService.UpdateNotificationsAsync(dto));
-//         }
+        [HttpPut("notifications")]
+        public async Task<IActionResult> UpdateNotifications(
+            [FromBody] bool enabled)
+        {
+            return Ok(
+                await _settingsService.UpdateNotificationsAsync(enabled));
+        }
 
-//         [HttpPut("accessibility")]
-//         public async Task<IActionResult> UpdateAccessibility(
-//             [FromBody] UpdateAccessibilityDto dto)
-//         {
-//             return Ok(
-//                 await _settingsService.UpdateAccessibilityAsync(dto));
-//         }
+        [HttpPut("accessibility")]
+        public async Task<IActionResult> UpdateAccessibility(
+            [FromBody] AccessibilitySettings settings)
+        {
+            return Ok(
+                await _settingsService.UpdateAccessibilityAsync(settings));
+        }
 
-//         [HttpPost("bugs")]
-//         public async Task<IActionResult> SubmitBug(
-//             [FromBody] BugReportDto dto)
-//         {
-//             if (string.IsNullOrWhiteSpace(dto.Title) ||
-//                 string.IsNullOrWhiteSpace(dto.Description))
-//             {
-//                 return BadRequest(
-//                     "Bug title and description are required.");
-//             }
+        [HttpPost("bugs")]
+        public async Task<IActionResult> SubmitBug(
+            [FromBody] BugReportRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Title) ||
+                string.IsNullOrWhiteSpace(request.Description))
+            {
+                return BadRequest(
+                    "Bug title and description are required.");
+            }
 
-//             await _settingsService.SubmitBugAsync(dto);
+            await _settingsService.SubmitBugAsync(request.Title, request.Description);
 
 //             return Ok(new
 //             {
@@ -74,16 +73,34 @@
 //             });
 //         }
 
-//         [HttpPost("rating")]
-//         public async Task<IActionResult> SubmitRating(
-//             [FromBody] AppRatingDto dto)
-//         {
-//             await _settingsService.SubmitRatingAsync(dto);
+        [HttpPost("rating")]
+        public async Task<IActionResult> SubmitRating(
+            [FromBody] RatingRequest request)
+        {
+            await _settingsService.SubmitRatingAsync(request.Rating, request.Comment);
 
-//             return Ok(new
-//             {
-//                 message = "Thank you for rating MeTrix."
-//             });
-//         }
-//     }
-// }
+            return Ok(new
+            {
+                message = "Thank you for rating MeTrix."
+            });
+        }
+    }
+
+    public class AccessibilitySettings
+    {
+        public string FontSize {get; set;} = "Medium";
+        public bool HighContrast {get; set;}
+    }
+
+    public class BugReportRequest
+    {
+        public string Title {get; set;} = string.Empty;
+        public string Description {get; set;} = string.Empty;
+    }
+
+    public class RatingRequest
+    {
+        public int Rating {get; set;}
+        public string? Comment {get; set;}
+    }
+}
