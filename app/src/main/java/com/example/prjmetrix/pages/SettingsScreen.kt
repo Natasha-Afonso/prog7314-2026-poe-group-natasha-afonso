@@ -86,7 +86,7 @@ fun SettingsScreen(
         settingsViewModel.loadSettings()
     }
 
-    SettingsScreen(
+    SettingsContent(
         uiState = uiState,
         snackbarHostState = snackbarHostState,
 
@@ -151,7 +151,7 @@ fun SettingsScreen(
 
 // Stateless Settings screen
 @Composable
-fun SettingsScreen(
+fun SettingsContent(
     uiState: SettingsUiState = SettingsUiState(),
     snackbarHostState: SnackbarHostState = remember {
         SnackbarHostState()

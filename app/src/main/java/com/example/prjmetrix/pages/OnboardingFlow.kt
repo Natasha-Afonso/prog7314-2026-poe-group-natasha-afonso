@@ -28,6 +28,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.prjmetrix.ProfileRepository
 import com.example.prjmetrix.pages.BgBlue
 import com.example.prjmetrix.pages.BrandBrown
 import com.example.prjmetrix.pages.DividerGray
@@ -96,7 +97,7 @@ fun PostSignInGate(
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val profileApi = remember { HabitRepository(context).profileApi }
+    val profileApi = remember { ProfileRepository(context).api }
     var gate by remember { mutableStateOf(GateState.LOADING) }
     var attempt by remember { mutableIntStateOf(0) }
 
