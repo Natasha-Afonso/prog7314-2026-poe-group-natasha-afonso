@@ -12,27 +12,28 @@ import retrofit2.http.Path
 interface JournalApi {
     //retrofit interface to map the functions to backend API endpoints
 
-    //POST request for the user to sign up to the api endpoint
+    //POST request for the user to create a new journal entry
     @POST("api/journal")
-    //takes the object with email and password into JSON request body
+    //takes the object with text, mood, time & id into JSON request body
     suspend fun create(@Body body: JournalRequest): Response<JournalResponse>
 
-    //POST request for the user to sign in to the api endpoint
+    //GET request for the user to get a specific entry already created
     @GET("api/journal/{id}")
-    //sends the users email and password as a JSON request body
+    //returns the entry in JSON request body
     suspend fun getById(@Body body: JournalRequest): Response<JournalResponse>
 
-    //POST request for goggle third party single sign on api endpoint
+    //GET request for getting all the journal entries
     @GET("api/journal")
-    //takes the google ID token to the backend into firebase for authentication to add that users account
+    //returns all the entries the user has created in a list form in index
     suspend fun getAll(@Body body: JournalRequest): Response<JournalResponse>
 
-    //GET request to get users data api endpoint
+    //DELETE request to delete specific entry
     @DELETE("api/journal/{id}")
-    suspend fun delete(@Path("id") id: Int): Response<Unit> //works with JWT to identify logged in user
+    suspend fun delete(@Path("id") id: Int): Response<Unit> //delete the selected entry from db
 
+    //PUT updates a journal entry
     @PUT("api/journal/{id}")
-    suspend fun update(@Path("id") id: Int, @Body body: JournalRequest): Response<JournalResponse>
+    suspend fun update(@Path("id") id: Int, @Body body: JournalRequest): Response<JournalResponse> //JSON response body returns with updated details
 
 }
 
