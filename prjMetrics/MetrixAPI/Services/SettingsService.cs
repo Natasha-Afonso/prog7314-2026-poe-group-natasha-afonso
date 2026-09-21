@@ -1,157 +1,155 @@
-// using MetrixAPI.Data;
-// using MetrixAPI.DTOs;
-// using MetrixAPI.Models;
-// using Microsoft.EntityFrameworkCore;
+using MetrixAPI.Controllers;
+using MetrixAPI.Data;
+using MetrixAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
-// namespace MetrixAPI.Services
-// {
-//     public class SettingsService
-//     {
-//         private readonly ApplicationDbContext _context;
-//         private readonly IUserIdentityService _identity;
+namespace MetrixAPI.Services
+{
+    public class SettingsService
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly IUserIdentityService _identity;
 
-//         public SettingsService(
-//             ApplicationDbContext context,
-//             IUserIdentityService identity)
-//         {
-//             _context = context;
-//             _identity = identity;
-//         }
+        public SettingsService(
+            ApplicationDbContext context,
+            IUserIdentityService identity)
+        {
+            _context = context;
+            _identity = identity;
+        }
 
-//         public async Task<SettingsResponseDto> GetSettingsAsync()
-//         {
-//             var userId = _identity.GetUserId();
+        public async Task<UserSettings> GetSettingsAsync()
+        {
+            var userId = _identity.GetUserId();
 
-//             var settings = await GetOrCreateSettingsAsync(userId);
+            return await GetOrCreateSettingsAsync(userId);
 
-//             return new SettingsResponseDto
-//             {
-//                 Language = settings.Language,
-//                 Theme = settings.Theme,
-//                 PushNotifications = settings.PushNotifications,
-//                 FontSize = settings.FontSize,
-//                 HighContrast = settings.HighContrast
-//             };
-//         }
+        }
 
-//         public async Task<SettingsResponseDto> UpdateLanguageAsync(
-//             UpdateLanguageDto dto)
-//         {
-//             var settings =
-//                 await GetOrCreateSettingsAsync(_identity.GetUserId());
+        public async Task<UserSettings> UpdateLanguageAsync(
+            string language)
+        {
+            var settings =
+                await GetOrCreateSettingsAsync(_identity.GetUserId());
 
-//             settings.Language = dto.Language;
-//             settings.UpdatedAt = DateTime.UtcNow;
+            settings.Language = language;
+            settings.UpdatedAt = DateTime.UtcNow;
 
-//             await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-//             return await GetSettingsAsync();
-//         }
+            return settings;
+        }
 
-//         public async Task<SettingsResponseDto> UpdateThemeAsync(
-//             UpdateThemeDto dto)
-//         {
-//             var settings =
-//                 await GetOrCreateSettingsAsync(_identity.GetUserId());
+        public async Task<UserSettings> UpdateThemeAsync(
+            string theme)
+        {
+            var settings =
+                await GetOrCreateSettingsAsync(_identity.GetUserId());
 
-//             settings.Theme = dto.Theme;
-//             settings.UpdatedAt = DateTime.UtcNow;
+            settings.Theme = theme;
+            settings.UpdatedAt = DateTime.UtcNow;
 
-//             await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-//             return await GetSettingsAsync();
-//         }
+            return settings;
+        }
 
-//         public async Task<SettingsResponseDto> UpdateNotificationsAsync(
-//             UpdateNotificationsDto dto)
-//         {
-//             var settings =
-//                 await GetOrCreateSettingsAsync(_identity.GetUserId());
+        public async Task<UserSettings> UpdateNotificationsAsync(
+            bool enabled)
+        {
+            var settings =
+                await GetOrCreateSettingsAsync(_identity.GetUserId());
 
-//             settings.PushNotifications = dto.Enabled;
-//             settings.UpdatedAt = DateTime.UtcNow;
+            settings.PushNotifications = enabled;
+            settings.UpdatedAt = DateTime.UtcNow;
 
-//             await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-//             return await GetSettingsAsync();
-//         }
+            return settings;
+        }
 
-//         public async Task<SettingsResponseDto> UpdateAccessibilityAsync(
-//             UpdateAccessibilityDto dto)
-//         {
-//             if (dto.FontSize < 10 || dto.FontSize > 40)
-//             {
-//                 throw new ArgumentException(
-//                     "Font size must be between 10 and 40.");
-//             }
+        public async Task<UserSettings> UpdateAccessibilityAsync(
+            AccessibilitySettings settingsRequest)
+        {
+            var validSizes = new []
+            {
+                "Small",
+                "Medium",
+                "Large"
+            };
 
-//             var settings =
-//                 await GetOrCreateSettingsAsync(_identity.GetUserId());
+            if (!validSizes.Contains(settingsRequest.FontSize))
+            {
+              throw new ArgumentException("Font size must be small, medium or large.");
+            }
 
-//             settings.FontSize = dto.FontSize;
-//             settings.HighContrast = dto.HighContrast;
-//             settings.UpdatedAt = DateTime.UtcNow;
+            var settings =
+                await GetOrCreateSettingsAsync(_identity.GetUserId());
 
-//             await _context.SaveChangesAsync();
+            settings.FontSize = settingsRequest.FontSize;
+            settings.HighContrast = settingsRequest.HighContrast;
+            settings.UpdatedAt = DateTime.UtcNow;
 
-//             return await GetSettingsAsync();
-//         }
+            await _context.SaveChangesAsync();
 
-//         public async Task SubmitBugAsync(BugReportDto dto)
-//         {
-//             var bug = new BugReport
-//             {
-//                 UserId = _identity.GetUserId(),
-//                 Title = dto.Title,
-//                 Description = dto.Description
-//             };
+            return settings;
+        }
 
-//             _context.BugReports.Add(bug);
+        public async Task SubmitBugAsync(string title, string description)
+        {
+            var bug = new BugReport
+            {
+                UserId = _identity.GetUserId(),
+                Title = title,
+                Description = description
+            };
 
-//             await _context.SaveChangesAsync();
-//         }
+            _context.BugReports.Add(bug);
 
-//         public async Task SubmitRatingAsync(AppRatingDto dto)
-//         {
-//             if (dto.Rating < 1 || dto.Rating > 5)
-//             {
-//                 throw new ArgumentException(
-//                     "Rating must be between 1 and 5.");
-//             }
+            await _context.SaveChangesAsync();
+        }
 
-//             var rating = new AppRating
-//             {
-//                 UserId = _identity.GetUserId(),
-//                 Rating = dto.Rating,
-//                 Comment = dto.Comment
-//             };
+        public async Task SubmitRatingAsync(int rating, string? comment)
+        {
+            if (rating < 1 || rating > 5)
+            {
+                throw new ArgumentException(
+                    "Rating must be between 1 and 5.");
+            }
 
-//             _context.AppRatings.Add(rating);
+            var appRating = new AppRating
+            {
+                UserId = _identity.GetUserId(),
+                Rating = rating,
+                Comment = comment
+            };
 
-//             await _context.SaveChangesAsync();
-//         }
+            _context.AppRatings.Add(appRating);
 
-//         private async Task<UserSettings> GetOrCreateSettingsAsync(
-//             string userId)
-//         {
-//             var settings = await _context.UserSettings
-//                 .FirstOrDefaultAsync(x => x.UserId == userId);
+            await _context.SaveChangesAsync();
+        }
 
-//             if (settings != null)
-//             {
-//                 return settings;
-//             }
+        private async Task<UserSettings> GetOrCreateSettingsAsync(
+            string userId)
+        {
+            var settings = await _context.UserSettings
+                .FirstOrDefaultAsync(x => x.UserId == userId);
 
-//             settings = new UserSettings
-//             {
-//                 UserId = userId
-//             };
+             if (settings != null)
+            {
+                 return settings;
+           }
 
-//             _context.UserSettings.Add(settings);
+             settings = new UserSettings
+             {
+                UserId = userId
+            };
 
-//             await _context.SaveChangesAsync();
+             _context.UserSettings.Add(settings);
 
-//             return settings;
-//         }
-//     }
-// }
+             await _context.SaveChangesAsync();
+
+             return settings;
+     }
+    }
+ }

@@ -25,6 +25,9 @@ namespace MetrixAPI.Data
         //Habits
           public DbSet<Habit> Habits { get; set; }
         public DbSet<HabitLog> HabitLogs { get; set; }
+   
+   //Profile
+   public DbSet<Profile> Profiles { get; set; }
     }
 }
 
