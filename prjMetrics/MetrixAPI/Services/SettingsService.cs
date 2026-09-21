@@ -1,5 +1,5 @@
+using MetrixAPI.Controllers;
 using MetrixAPI.Data;
-using MetrixAPI.DTOs;
 using MetrixAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,92 +18,90 @@ namespace MetrixAPI.Services
             _identity = identity;
         }
 
-        public async Task<SettingsResponseDto> GetSettingsAsync()
+        public async Task<UserSettings> GetSettingsAsync()
         {
             var userId = _identity.GetUserId();
 
-            var settings = await GetOrCreateSettingsAsync(userId);
+            return await GetOrCreateSettingsAsync(userId);
 
-            return new SettingsResponseDto
+        }
+
+        public async Task<UserSettings> UpdateLanguageAsync(
+            string language)
+        {
+            var settings =
+                await GetOrCreateSettingsAsync(_identity.GetUserId());
+
+            settings.Language = language;
+            settings.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return settings;
+        }
+
+        public async Task<UserSettings> UpdateThemeAsync(
+            string theme)
+        {
+            var settings =
+                await GetOrCreateSettingsAsync(_identity.GetUserId());
+
+            settings.Theme = theme;
+            settings.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return settings;
+        }
+
+        public async Task<UserSettings> UpdateNotificationsAsync(
+            bool enabled)
+        {
+            var settings =
+                await GetOrCreateSettingsAsync(_identity.GetUserId());
+
+            settings.PushNotifications = enabled;
+            settings.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return settings;
+        }
+
+        public async Task<UserSettings> UpdateAccessibilityAsync(
+            AccessibilitySettings settingsRequest)
+        {
+            var validSizes = new []
             {
-                Language = settings.Language,
-                Theme = settings.Theme,
-                PushNotifications = settings.PushNotifications,
-                FontSize = settings.FontSize,
-                HighContrast = settings.HighContrast
+                "Small",
+                "Medium",
+                "Large"
             };
-        }
 
-        public async Task<SettingsResponseDto> UpdateLanguageAsync(
-            UpdateLanguageDto dto)
-        {
-            var settings =
-                await GetOrCreateSettingsAsync(_identity.GetUserId());
-
-            settings.Language = dto.Language;
-            settings.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return await GetSettingsAsync();
-        }
-
-        public async Task<SettingsResponseDto> UpdateThemeAsync(
-            UpdateThemeDto dto)
-        {
-            var settings =
-                await GetOrCreateSettingsAsync(_identity.GetUserId());
-
-            settings.Theme = dto.Theme;
-            settings.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return await GetSettingsAsync();
-        }
-
-        public async Task<SettingsResponseDto> UpdateNotificationsAsync(
-            UpdateNotificationsDto dto)
-        {
-            var settings =
-                await GetOrCreateSettingsAsync(_identity.GetUserId());
-
-            settings.PushNotifications = dto.Enabled;
-            settings.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return await GetSettingsAsync();
-        }
-
-        public async Task<SettingsResponseDto> UpdateAccessibilityAsync(
-            UpdateAccessibilityDto dto)
-        {
-            if (dto.FontSize < 10 || dto.FontSize > 40)
+            if (!validSizes.Contains(settingsRequest.FontSize))
             {
-                throw new ArgumentException(
-                    "Font size must be between 10 and 40.");
+              throw new ArgumentException("Font size must be small, medium or large.");
             }
 
             var settings =
                 await GetOrCreateSettingsAsync(_identity.GetUserId());
 
-            settings.FontSize = dto.FontSize;
-            settings.HighContrast = dto.HighContrast;
+            settings.FontSize = settingsRequest.FontSize;
+            settings.HighContrast = settingsRequest.HighContrast;
             settings.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            return await GetSettingsAsync();
+            return settings;
         }
 
-        public async Task SubmitBugAsync(BugReportDto dto)
+        public async Task SubmitBugAsync(string title, string description)
         {
             var bug = new BugReport
             {
                 UserId = _identity.GetUserId(),
-                Title = dto.Title,
-                Description = dto.Description
+                Title = title,
+                Description = description
             };
 
             _context.BugReports.Add(bug);
@@ -111,22 +109,22 @@ namespace MetrixAPI.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task SubmitRatingAsync(AppRatingDto dto)
+        public async Task SubmitRatingAsync(int rating, string? comment)
         {
-            if (dto.Rating < 1 || dto.Rating > 5)
+            if (rating < 1 || rating > 5)
             {
                 throw new ArgumentException(
                     "Rating must be between 1 and 5.");
             }
 
-            var rating = new AppRating
+            var appRating = new AppRating
             {
                 UserId = _identity.GetUserId(),
-                Rating = dto.Rating,
-                Comment = dto.Comment
+                Rating = rating,
+                Comment = comment
             };
 
-            _context.AppRatings.Add(rating);
+            _context.AppRatings.Add(appRating);
 
             await _context.SaveChangesAsync();
         }
@@ -137,21 +135,21 @@ namespace MetrixAPI.Services
             var settings = await _context.UserSettings
                 .FirstOrDefaultAsync(x => x.UserId == userId);
 
-            if (settings != null)
+             if (settings != null)
             {
-                return settings;
-            }
+                 return settings;
+           }
 
-            settings = new UserSettings
-            {
+             settings = new UserSettings
+             {
                 UserId = userId
             };
 
-            _context.UserSettings.Add(settings);
+             _context.UserSettings.Add(settings);
 
-            await _context.SaveChangesAsync();
+             await _context.SaveChangesAsync();
 
-            return settings;
-        }
+             return settings;
+     }
     }
-}
+ }

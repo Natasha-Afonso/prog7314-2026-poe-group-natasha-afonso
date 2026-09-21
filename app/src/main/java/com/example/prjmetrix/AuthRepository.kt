@@ -19,49 +19,11 @@ import java.util.concurrent.TimeUnit
 
 class AuthRepository(private val context: Context) {
 
-    //The actual URL is http://localhost:5161 - use this if you are running through your android phone
-    //if that fails then you need to use the IP address of your laptop eg: http://192.168.x.x:5161
-    //if you are running on emulator then use this URL: http://10.0.2.2:5161
-    private val baseUrl = "http://192.168.0.183:5161"
-
-    private val tokenStore = Token(context) //instance is created in token db
-
-    //(Burak, 2022)
     private val api: AuthApi by lazy {
-        val authInterceptor = Interceptor { chain -> //authinterceptor find the tokenID stored in db and when found gets sent to backend
-            val token = runBlocking { tokenStore.getIdToken() }
-            val request = if (token.isNullOrBlank()) {
-                chain.request()
-            } else {
-                chain.request().newBuilder()
-                    .addHeader("Authorization", "Bearer $token")
-                    .build()
-            }
-            chain.proceed(request)
-        }
-
-        //creating an instance for OkHttp for network logging
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-
-        //(StackOverflow, 2023)
-        val client = OkHttpClient.Builder() //building the client object
-            .addInterceptor(authInterceptor) //gets the token and passes through the interceptor to inject the Authorization JWT
-            .addInterceptor(logging)
-            .connectTimeout(30, TimeUnit.SECONDS) //connection timesout after 30sec
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build()
-
-        //(StackOverflow, 2023)
-        //using GSON to parse JSON objects
-        Retrofit.Builder()
-            .baseUrl(baseUrl)
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create()) //converts raw strings into objects for authresponse data class
-            .build()
-            .create(AuthApi::class.java) //calls the functions endpoint routes in the interface
+        NetworkRepository.create(context, AuthApi::class.java)
     }
+
+    private val tokenStore = Token(context.applicationContext)
 
     //sign up, sign in and signinwithgoogle functions handle the connection calling the authResponse which defines data class objects
     suspend fun signUp(email: String, password: String): Result<AuthResponse> =

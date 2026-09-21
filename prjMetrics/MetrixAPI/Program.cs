@@ -9,7 +9,7 @@ using MetrixAPI.Services;
 using MetrixAPI.Data;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
-using MetrixAPI.Services;
+
 
 namespace MetrixAPI
 {
@@ -27,11 +27,21 @@ namespace MetrixAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+          // Add services to the container.
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
+    var connectionString = Environment.GetEnvironmentVariable("SQL_CONNECTION_STRING")
+        ?? builder.Configuration.GetConnectionString("SQL_CONNECTION_STRING");
+
+    options.UseSqlServer(connectionString);
+});
+
+
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
-            builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+           
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddScoped<UserIdentityService>();
+            builder.Services.AddScoped<IUserIdentityService,UserIdentityService>();
             builder.Services.AddScoped<SettingsService>();
 
             //configure firebase to map to the correct project id and key declared in appsettings
