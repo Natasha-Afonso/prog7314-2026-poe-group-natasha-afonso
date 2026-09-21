@@ -48,9 +48,9 @@ class JournalViewModel(private val repository: JournalRepository) : ViewModel() 
 
     fun updateEntry(id: Int, mood: String, text: String, onDone: () -> Unit) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isSaving = true, errorMessage = null) }
             repository.update(id, mood, text) //calls the update function to update a journal entry
-                .onSuccess { list ->
+                .onSuccess {
                     _uiState.update {
                         it.copy(
                             isSaving = false
@@ -62,7 +62,7 @@ class JournalViewModel(private val repository: JournalRepository) : ViewModel() 
                 .onFailure { e ->
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
+                            isSaving = false,
                             errorMessage = e.message
                         )
                     }
@@ -72,9 +72,9 @@ class JournalViewModel(private val repository: JournalRepository) : ViewModel() 
 
     fun createEntry(mood: String, text: String, onDone: () -> Unit) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isSaving = true, errorMessage = null) }
             repository.create(text, mood) //calls create function where users enters their text and mood
-                .onSuccess { list ->
+                .onSuccess {
                     _uiState.update {
                         it.copy(
                             isSaving = false
