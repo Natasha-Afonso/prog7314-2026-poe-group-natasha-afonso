@@ -85,12 +85,12 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
         composable("journallist") {
             JournalList(
                 onBack = { navController.popBackStack() },
-                onWriteEntry = { navController.navigate("journal_entry") },
-                onEditEntry = { id -> navController.navigate("journal_entry?entryId=$id") }
+                onWriteEntry = { navController.navigate("journalentry") },
+                onEditEntry = { id -> navController.navigate("journalentry?entryId=$id") }
             )
         }
         composable(
-            route = "journal_entry?entryId={entryId}",
+            route = "journalentry?entryId={entryId}",
             arguments = listOf(navArgument("entryId") {
                 type = NavType.IntType
                 defaultValue = -1

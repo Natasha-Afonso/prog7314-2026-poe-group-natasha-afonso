@@ -18,7 +18,7 @@ namespace MetrixAPI.Models
 
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; set; } //updates the time when user updates a diary entry
+        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow; //updates the time when user updates a diary entry
 
 
     }
