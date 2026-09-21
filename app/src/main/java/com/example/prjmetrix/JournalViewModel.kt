@@ -23,6 +23,7 @@ class JournalViewModel(private val repository: JournalRepository) : ViewModel() 
     private val _uiState = MutableStateFlow(JournalUiState())
     val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
 
+    //(Sharma, 2024)
     fun loadEntries() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
@@ -70,6 +71,7 @@ class JournalViewModel(private val repository: JournalRepository) : ViewModel() 
         }
     }
 
+    //(Alpasian, 2023)
     fun createEntry(mood: String, text: String, onDone: () -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
@@ -114,7 +116,9 @@ class JournalViewModel(private val repository: JournalRepository) : ViewModel() 
 }
 /*References
 *
+* Alpasian, E., 2023. DiaryApp. (Version 10.0) [Source code]. Available at: < https://github.com/erenalpaslan/DiaryApp > [Accessed 19 September 2026]
 * Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
+* Sharma, S., 2024. Mood-Journal. (Version 10.0) [Source code]. Available at: < https://github.com/SakshamSharma2026/Mood-Journal > [Accessed 21 September 2026]
+* Simplified Coding, 2021. #12 Android Login/Signup with MVVM - user Logout [video online] [source code]. Available at: < https://youtu.be/q_5xrPYRoAg?si=gRbHfP1TazLTqbrY > [Accessed 19 September 2026
 *
-*
-* */
+*/

@@ -37,7 +37,7 @@ val journalMoods = listOf(
 *
 * Jovanovic, S., 2024. Diary App. (Version 10.0) [Source Code]. Available at: < https://github.com/stevdza-san/DiaryApp/tree/master > [Accessed 20 September 2026]
 * Krishna, M., 2025. Personal Diary App. (Version 10.0) [Source Code]. Available at: < https://github.com/Murali-KrishnaM/PersonalDiaryApp/blob/main/app/src/main/java/com/example/diaryapp/AddEntryActivity.kt > [Accessed 20 September 2026]
-*
+* Simplified Coding, 2021. #12 Android Login/Signup with MVVM - user Logout [video online] [source code]. Available at: < https://youtu.be/q_5xrPYRoAg?si=gRbHfP1TazLTqbrY > [Accessed 19 September 2026
 *
 *
 * */

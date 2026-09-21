@@ -139,6 +139,7 @@ namespace MetrixAPI.Controllers
             return NoContent();
         }
 
+        //(Rafique, 2025)
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateEntry(int id, JournalRequest dto)
         {
@@ -180,6 +181,9 @@ namespace MetrixAPI.Controllers
  * 
  * Ahmed, F. 2018. How to join operations with database using LINQ. 2018. (Version 8)[Source Code]. Available at: https://www.c-sharpcorner.com/article/how-to-use-join-operations-with-database-using-linq/ [Accessed 20 September 2026]
  * IIE Emeris School of Computer Science. 2025. Getting strated with MVC, Entity Framework and SQL Azure database for CLDV6211 Part 3. (Version 8.0-SNAPSHOT) [Source code]. Available at: https://youtu.be/qkQ3YiKN5nk?si=9Zr8iT7DN8yE6x6C [Accessed 20 September 2026].
+ * Rafique, H., 2025. EmployeeAPI-CRUD. (Version 10.0) [source code]. Available at: < https://github.com/GitHamziee/EmployeeAPI-CRUD/blob/main/Controllers/EmployeesController.cs > [Accessed 19 September 2026]
  * StackOverflow. 2023. How can I asynchronously transform one IEnumerable to another, just like LINQ's Select(), but using await on every transformed item? (Version 10)[source code]. Available at: <https://stackoverflow.com/questions/50884086/how-can-i-asynchronously-transform-one-ienumerable-to-another-just-like-linqs> [Accessed 20 September 2026]
  * Troelsen, A. and Japikse, P. 2022. Pro C# 10 with .NET 6 Foundational Principles and Practices in Programming. 11th ed. New York: Apress.
+ *
+ *
  */

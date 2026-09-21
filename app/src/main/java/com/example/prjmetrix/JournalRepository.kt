@@ -25,6 +25,7 @@ class JournalRepository(context: Context) {
 
     //private val tokenStore = Token(context.applicationContext)
 
+    //(Alpasian, 2023)
     //CRUD functions handle the link calling the journalResponse which defines data class objects that are passed the mood, text and id
     suspend fun create(text: String, mood: String): Result<JournalResponse> =
         callOne { api.create(JournalRequest(text, mood)) }
@@ -54,6 +55,7 @@ class JournalRepository(context: Context) {
         }
    }
 
+    //(Sharma, 2024)
     //functions deals with error messages related to JournalRepository failing to get a JSON response objects
     private suspend fun <T> callOne(block: suspend () -> Response<T>): Result<T> {
         return try {
@@ -121,8 +123,8 @@ class JournalRepository(context: Context) {
 
 /*References
 *
-* Burak, 2022. JWT Authentication and Refresh Token in Android with Retrofit Interceptor & Authenticator. (Version 10.0) [source code]. Available at: < https://proandroiddev.com/jwt-authentication-and-refresh-token-in-android-with-retrofit-interceptor-authenticator-da021f7f7534 > [Accessed 19 September 2026]
-* Siddhi, 2025. Google OAuth in Android using Credential Manager (Modern Approach). (Version 10.0) [Source Code]. Available at : < https://medium.com/@InkAndLogic/google-oauth-in-android-using-credential-manager-modern-approach-7d5e8ea37ee4 > [Accessed 19 September 2026]
+* Alpasian, E., 2023. DiaryApp. (Version 10.0) [Source code]. Available at: < https://github.com/erenalpaslan/DiaryApp > [Accessed 19 September 2026]
+* Sharma, S., 2024. Mood-Journal. (Version 10.0) [Source code]. Available at: < https://github.com/SakshamSharma2026/Mood-Journal > [Accessed 21 September 2026]
 * Simplified Coding, 2021. #12 Android Login/Signup with MVVM - user Logout [video online] [source code]. Available at: < https://youtu.be/q_5xrPYRoAg?si=gRbHfP1TazLTqbrY > [Accessed 19 September 2026
-* StackOverflow, 2023. How to add http logging interceptor along with another interceptor in android with kotlin. (Version 10.0) [source code]. Available at: < https://stackoverflow.com/questions/67239799/how-to-add-http-logging-interceptor-along-with-another-interceptor-in-android-wi > [Accessed 19 September 2026]
+*
 * */

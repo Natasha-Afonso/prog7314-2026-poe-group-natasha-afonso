@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace MetrixAPI.Models
-{
+{//(Rafique, 2025)
     public class Journal
     {
         [Key]
@@ -23,3 +23,8 @@ namespace MetrixAPI.Models
 
     }
 }
+
+/*References
+ * Rafique, H., 2025. EmployeeAPI-CRUD. (Version 10.0) [source code]. Available at: < https://github.com/GitHamziee/EmployeeAPI-CRUD/tree/main/Models > [Accessed 19 September 2026]
+ *
+*/
