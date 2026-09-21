@@ -135,21 +135,21 @@ namespace MetrixAPI.Services
             var settings = await _context.UserSettings
                 .FirstOrDefaultAsync(x => x.UserId == userId);
 
-            if (settings != null)
-            {
-                return settings;
-            }
+//             if (settings != null)
+//             {
+//                 return settings;
+//             }
 
-            settings = new UserSettings
-            {
-                UserId = userId
-            };
+//             settings = new UserSettings
+//             {
+//                 UserId = userId
+//             };
 
-            _context.UserSettings.Add(settings);
+//             _context.UserSettings.Add(settings);
 
-            await _context.SaveChangesAsync();
+//             await _context.SaveChangesAsync();
 
-            return settings;
-        }
-    }
-}
+//             return settings;
+//         }
+//     }
+// }

@@ -2,25 +2,25 @@ using MetrixAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace MetrixAPI.Controllers
-{
-    [ApiController]
-    [Route("api/settings")]
-    [Authorize]
-    public class SettingsController : ControllerBase
-    {
-        private readonly SettingsService _settingsService;
+// namespace MetrixAPI.Controllers
+// {
+//     [ApiController]
+//     [Route("api/settings")]
+//     [Authorize]
+//     public class SettingsController : ControllerBase
+//     {
+//         private readonly SettingsService _settingsService;
 
-        public SettingsController(SettingsService settingsService)
-        {
-            _settingsService = settingsService;
-        }
+//         public SettingsController(SettingsService settingsService)
+//         {
+//             _settingsService = settingsService;
+//         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetSettings()
-        {
-            return Ok(await _settingsService.GetSettingsAsync());
-        }
+//         [HttpGet]
+//         public async Task<IActionResult> GetSettings()
+//         {
+//             return Ok(await _settingsService.GetSettingsAsync());
+//         }
 
         [HttpPut("language")]
         public async Task<IActionResult> UpdateLanguage(
@@ -67,11 +67,11 @@ namespace MetrixAPI.Controllers
 
             await _settingsService.SubmitBugAsync(request.Title, request.Description);
 
-            return Ok(new
-            {
-                message = "Bug report submitted successfully."
-            });
-        }
+//             return Ok(new
+//             {
+//                 message = "Bug report submitted successfully."
+//             });
+//         }
 
         [HttpPost("rating")]
         public async Task<IActionResult> SubmitRating(

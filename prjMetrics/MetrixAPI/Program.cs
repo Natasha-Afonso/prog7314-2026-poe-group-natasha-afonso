@@ -9,10 +9,7 @@ using MetrixAPI.Services;
 using MetrixAPI.Data;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
-using MetrixAPI.Services;
 
-using MetrixAPI.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace MetrixAPI
 {
