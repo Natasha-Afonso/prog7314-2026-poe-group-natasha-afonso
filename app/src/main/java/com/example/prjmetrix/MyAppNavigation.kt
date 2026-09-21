@@ -88,7 +88,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
         }
             composable("home") {
                 HomeScreen(
-                    onMoreClick = { navController.navigate("settings") },
+                    onSettingsClick = { navController.navigate("settings") },
                     onSessionExpired = {authViewModel.signOut() }
                 )
             }
