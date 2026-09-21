@@ -18,6 +18,7 @@ import com.example.prjmetrix.pages.LoginScreen
 import com.example.prjmetrix.pages.SettingsScreen
 import com.example.prjmetrix.pages.SignupScreen
 
+//(Easy Tuto, 2024)
 @Composable
 fun MyAppNavigation(modifier: Modifier = Modifier) {
 
@@ -48,11 +49,12 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
     }
 
 
+    //the starting screen of the app should be the home if not the user goes to login
     val startDestination =
     if(uiState.isAuthenticated) "settings" else "login"
 
 
-
+//navigation code for each screen
     NavHost(navController = navController,
         startDestination , builder = {
         composable("login"){
@@ -66,3 +68,9 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
         }
     })
 }
+/*References
+*
+* Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
+*
+*
+* */

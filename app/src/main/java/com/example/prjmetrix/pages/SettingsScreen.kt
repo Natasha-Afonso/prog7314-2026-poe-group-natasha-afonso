@@ -50,9 +50,11 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prjmetrix.AuthViewModel
 import com.example.prjmetrix.R
-import com.example.prjmetrix.SettingsUiState
-import com.example.prjmetrix.SettingsViewModel
-import kotlinx.coroutines.launch
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.NavController
+import com.example.prjmetrix.AuthViewModel
 
 
 // Colours used on the Settings screen
@@ -66,110 +68,10 @@ val SettingsBgBlue = Color(0xFFF5F7FA)
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    authViewModel: AuthViewModel,
-    settingsViewModel: SettingsViewModel
+    authViewModel: AuthViewModel
 ) {
-
-    val uiState by settingsViewModel.uiState.collectAsState()
-
-    val snackbarHostState = remember {
-        SnackbarHostState()
-    }
-
-    val scope = rememberCoroutineScope()
-
-    // Load the user's settings when the screen opens
-    LaunchedEffect(Unit) {
-        settingsViewModel.loadSettings()
-    }
-
-    SettingsScreen(
-        uiState = uiState,
-        snackbarHostState = snackbarHostState,
-
-        onBack = {
-            navController.popBackStack()
-        },
-
-        onAccountClick = {
-            navController.navigate("account")
-        },
-
-        onLanguageClick = {
-            navController.navigate("language")
-        },
-
-        onThemeClick = {
-            navController.navigate("themes")
-        },
-
-        onAccessibilityClick = {
-            navController.navigate("accessibility")
-        },
-
-        onNotificationsToggle = { enabled ->
-            settingsViewModel.updateNotifications(enabled)
-        },
-
-        onSubmitBug = { title, description ->
-
-            settingsViewModel.submitBug(
-                title,
-                description
-            )
-
-            scope.launch {
-                snackbarHostState.showSnackbar(
-                    "Bug report submitted - thanks!"
-                )
-            }
-        },
-
-        onSubmitRating = { rating, comment ->
-
-            settingsViewModel.submitRating(
-                rating,
-                comment
-            )
-
-            scope.launch {
-                snackbarHostState.showSnackbar(
-                    "Thanks for rating MeTrix!"
-                )
-            }
-        },
-
-        onLogOut = {
-            authViewModel.signOut()
-        }
-    )
-}
-
-@Composable
-fun SettingsScreen(
-    uiState: SettingsUiState = SettingsUiState(),
-    snackbarHostState: SnackbarHostState = remember {
-        SnackbarHostState()
-    },
-    onBack: () -> Unit = {},
-    onAccountClick: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
-    onThemeClick: () -> Unit = {},
-    onAccessibilityClick: () -> Unit = {},
-    onNotificationsToggle: (Boolean) -> Unit = {},
-    onSubmitBug: (String, String) -> Unit = { _, _ -> },
-    onSubmitRating: (Int, String?) -> Unit = { _, _ -> },
-    onLogOut: () -> Unit = {}
-) {
-
-    var showBugDialog by remember {
-        mutableStateOf(false)
-    }
-
-    var showRatingDialog by remember {
-        mutableStateOf(false)
-    }
-
+    var notificationsEnabled by remember { mutableStateOf(true) }
+    val uiState by authViewModel.uiState.collectAsState()
 
     Scaffold(
         containerColor = SettingsBgBlue,
@@ -491,7 +393,8 @@ fun SettingsScreen(
             )
 
 
-            // Log out card
+            // Log out button
+            //(Easy Tuto, 2024)
             Card(
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(
@@ -503,9 +406,7 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .clickable {
-                        onLogOut()
-                    }
+                    .clickable{authViewModel.signOut()}
             ) {
 
                 Text(
@@ -862,3 +763,11 @@ fun SettingsRow(
         )
     }
 }
+
+
+/*References
+*
+* Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
+*
+*
+* */

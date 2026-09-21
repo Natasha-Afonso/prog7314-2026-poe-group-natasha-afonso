@@ -8,7 +8,7 @@ namespace MetrixAPI.Controllers
     public class TreasureMapController : Controller
     {
 
-        [HttpGet("booty")]
+     /*   [HttpGet("booty")]
         public IActionResult DiscoverBooty([FromQuery] string passcode)
         {
             if (passcode != "blackbeard")
@@ -16,7 +16,7 @@ namespace MetrixAPI.Controllers
                 return Unauthorized("Avast! Ye lack the secret word.");
             }
 
-\            var treasure = new Treasure
+          var treasure = new Treasure
             {
                 Coordinates = "25.0000° N, 71.0000° W",
                 SecretMessage = "Dead men tell no tales, but this API does. Now try and figure ye new URL for Android!",
@@ -26,5 +26,6 @@ namespace MetrixAPI.Controllers
             // CONTROLLER CLUE 5: Ye can't send 'null' to a thirsty pirate! Return an OK (200) response containing the treasure payload.
             return Ok(treasure);
         }
+        */
     }
 }
