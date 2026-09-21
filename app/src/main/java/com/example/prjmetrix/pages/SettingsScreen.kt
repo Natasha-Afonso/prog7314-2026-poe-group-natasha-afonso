@@ -1,5 +1,7 @@
 package com.example.prjmetrix.pages
 
+
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +35,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,11 +51,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prjmetrix.AuthViewModel
 import com.example.prjmetrix.R
-import androidx.compose.foundation.clickable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.navigation.NavController
-import com.example.prjmetrix.AuthViewModel
+import com.example.prjmetrix.SettingsUiState
+import com.example.prjmetrix.SettingsViewModel
+import kotlinx.coroutines.launch
 
 
 // Colours used on the Settings screen
@@ -65,13 +64,117 @@ val DividerLight = Color(0xFFEEF1F3)
 val LogoutRed = Color(0xFFE85B4E)
 val SettingsBgBlue = Color(0xFFF5F7FA)
 
+
+// This version connects the screen to the ViewModel
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    settingsViewModel: SettingsViewModel
 ) {
-    var notificationsEnabled by remember { mutableStateOf(true) }
-    val uiState by authViewModel.uiState.collectAsState()
+
+    val uiState by settingsViewModel.uiState.collectAsState()
+
+    val snackbarHostState = remember {
+        SnackbarHostState()
+    }
+
+    val scope = rememberCoroutineScope()
+
+    // Load the user's settings when the screen opens
+    LaunchedEffect(Unit) {
+        settingsViewModel.loadSettings()
+    }
+
+    SettingsScreen(
+        uiState = uiState,
+        snackbarHostState = snackbarHostState,
+
+        onBack = {
+            navController.popBackStack()
+        },
+
+        onAccountClick = {
+            navController.navigate("account")
+        },
+
+        onLanguageClick = {
+            navController.navigate("language")
+        },
+
+        onThemeClick = {
+            navController.navigate("themes")
+        },
+
+        onAccessibilityClick = {
+            navController.navigate("accessibility")
+        },
+
+        onNotificationsToggle = { enabled ->
+            settingsViewModel.updateNotifications(enabled)
+        },
+
+        onSubmitBug = { title, description ->
+
+            settingsViewModel.submitBug(
+                title,
+                description
+            )
+
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    "Bug report submitted - thanks!"
+                )
+            }
+        },
+
+        onSubmitRating = { rating, comment ->
+
+            settingsViewModel.submitRating(
+                rating,
+                comment
+            )
+
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    "Thanks for rating MeTrix!"
+                )
+            }
+        },
+
+        onLogOut = {
+            authViewModel.signOut()
+        }
+    )
+}
+
+
+// Stateless Settings screen
+@Composable
+fun SettingsScreen(
+    uiState: SettingsUiState = SettingsUiState(),
+    snackbarHostState: SnackbarHostState = remember {
+        SnackbarHostState()
+    },
+    onBack: () -> Unit = {},
+    onAccountClick: () -> Unit = {},
+    onLanguageClick: () -> Unit = {},
+    onThemeClick: () -> Unit = {},
+    onAccessibilityClick: () -> Unit = {},
+    onNotificationsToggle: (Boolean) -> Unit = {},
+    onSubmitBug: (String, String) -> Unit = { _, _ -> },
+    onSubmitRating: (Int, String?) -> Unit = { _, _ -> },
+    onLogOut: () -> Unit = {}
+) {
+
+    var showBugDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var showRatingDialog by remember {
+        mutableStateOf(false)
+    }
+
 
     Scaffold(
         containerColor = SettingsBgBlue,
@@ -393,8 +496,7 @@ fun SettingsScreen(
             )
 
 
-            // Log out button
-            //(Easy Tuto, 2024)
+            // Log out card
             Card(
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(
@@ -406,7 +508,9 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .clickable{authViewModel.signOut()}
+                    .clickable {
+                        onLogOut()
+                    }
             ) {
 
                 Text(
@@ -567,7 +671,7 @@ private fun RateAppDialog(
 ) {
 
     var rating by remember {
-        mutableIntStateOf(5)
+        mutableStateOf(5)
     }
 
     var comment by remember {
@@ -686,6 +790,7 @@ fun SectionLabel(text: String) {
 }
 
 
+// Reusable settings row
 @Composable
 fun SettingsRow(
     iconRes: Int,
