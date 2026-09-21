@@ -17,6 +17,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
+//(Simplified Coding, 2021)
 class AuthRepository(private val context: Context) {
 
     private val api: AuthApi by lazy {

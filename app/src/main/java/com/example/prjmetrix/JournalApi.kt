@@ -20,12 +20,12 @@ interface JournalApi {
     //GET request for the user to get a specific entry already created
     @GET("api/journal/{id}")
     //returns the entry in JSON request body
-    suspend fun getById(@Body body: JournalRequest): Response<JournalResponse>
+    suspend fun getById(@Path("id") id: Int): Response<JournalResponse>
 
     //GET request for getting all the journal entries
     @GET("api/journal")
     //returns all the entries the user has created in a list form in index
-    suspend fun getAll(@Body body: JournalRequest): Response<JournalResponse>
+    suspend fun getAll(): Response<List<JournalResponse>>
 
     //DELETE request to delete specific entry
     @DELETE("api/journal/{id}")
