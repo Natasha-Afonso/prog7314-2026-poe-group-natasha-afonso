@@ -48,11 +48,7 @@ class FileRepository(private val context: Context) {
                     requestFile
                 )
 
-<<<<<<< Updated upstream
             val response = api.uploadImage(body)
-=======
-            val response = api.uploadImage(file = body, removeBackground = removeBackground)
->>>>>>> Stashed changes
 
             tempFile.delete()
 
@@ -74,15 +70,9 @@ class FileRepository(private val context: Context) {
 
             } else {
 
-<<<<<<< Updated upstream
                 Result.failure(
                     Exception("Image upload failed.")
                 )
-=======
-                val errorMessage =
-                    response.errorBody()?.string() ?: "Image upload failed (${response.code()})."
-                Result.failure(Exception(errorMessage))
->>>>>>> Stashed changes
             }
 
         } catch (e: Exception) {

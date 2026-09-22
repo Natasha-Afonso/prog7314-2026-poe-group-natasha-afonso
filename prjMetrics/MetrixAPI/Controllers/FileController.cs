@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Azure.Storage.Blobs;
 
-
 //Emeris School of Computer Science, 2025
 namespace MetrixAPI.Controllers
 {
@@ -9,15 +8,10 @@ namespace MetrixAPI.Controllers
     [ApiController]
     public class FileController : ControllerBase
     {
-
         private readonly IConfiguration _configuration;
 
-<<<<<<< Updated upstream
 
     public FileController(IConfiguration configuration)
-=======
-        public FileController(IConfiguration configuration, IRemoveBackgroundService removeBackground)
->>>>>>> Stashed changes
         {
             _configuration = configuration;
         }

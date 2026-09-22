@@ -42,7 +42,6 @@ namespace MetrixAPI
             builder.Services.AddScoped<SettingsService>();
             builder.Services.AddScoped<ClothingService>();
 
-
             //configure firebase to map to the correct project id and key declared in appsettings
             var firebaseSettings = builder.Configuration.GetSection("Firebase").Get<FirebaseSettings>()
                 ?? throw new InvalidOperationException("Missing 'Firebase' configuration section");

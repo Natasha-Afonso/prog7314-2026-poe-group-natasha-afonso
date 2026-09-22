@@ -7,7 +7,6 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 
-<<<<<<< Updated upstream
 data class ClothingItem(
     val id: Int = 0,
     val userId: String = "",
@@ -16,8 +15,6 @@ data class ClothingItem(
     val imageUrl: String? = null,
     val isWishlist: Boolean = false
 )
-=======
->>>>>>> Stashed changes
 
 interface ClothingApi {
     @GET("api/clothing")

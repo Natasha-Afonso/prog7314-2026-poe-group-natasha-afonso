@@ -2,10 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MetrixAPI.Models
 {
-
     public class ClothingItem
     {
-        
         [Key]
         public int Id { get; set; }
 
