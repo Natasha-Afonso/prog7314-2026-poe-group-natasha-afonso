@@ -30,7 +30,7 @@ data class RatingRequest(
     val rating: Int,
     val comment: String? = null
 )
-
+//(Gupta, 2025)
 interface SettingsApi {
     // Get the current user's settings
     @GET("api/settings")
@@ -72,3 +72,7 @@ interface SettingsApi {
         @Body request: RatingRequest
     ): Response<Map<String, String>>
 }
+
+/*Reference List:
+*Gupta, P. 2025. Sending HTTP POST Requests with Retrofit in Android. [source code] Available at:<https://medium.com/@iampranshu2003/sending-http-post-requests-with-retrofit-in-android-81e119d785a8> [Accessed 18 September 2026]
+* */

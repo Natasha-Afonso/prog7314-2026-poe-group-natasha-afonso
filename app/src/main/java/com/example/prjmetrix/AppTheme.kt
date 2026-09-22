@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 @Composable
+//Pawar, 2026
 fun AppTheme(
     theme: String,
     fontSize: String,
@@ -21,6 +22,7 @@ fun AppTheme(
         "Large" -> 1.25f
         else -> 1f
     }
+
 
     val defaultTypography = Typography()
 
@@ -72,7 +74,7 @@ fun AppTheme(
         )
     )
 
-
+//Stack Overflow,2022
     val isDark = when (theme) {
         "Dark" -> true
         "Light" -> false
@@ -116,3 +118,7 @@ fun AppTheme(
         content = content
     )
 }
+/*Reference List:
+*Pawar, A. 2026.How to Build a Consistent Custom App Theme in Jetpack Compose (Material 3). [source code] Available at: <https://medium.com/softaai-blogs/how-to-build-a-consistent-custom-app-theme-in-jetpack-compose-material-3-86053f9b8aa1> .[Accessed 20 September 2026].
+*Stack Overflow. 2022. Jetpack Compose: How to change theme from light to dark mode programmatically onClick. [source code] Available at:<https://stackoverflow.com/questions/65192409/jetpack-compose-how-to-change-theme-from-light-to-dark-mode-programmatically-on>. [Accessed 20 September 2026].
+* * */
