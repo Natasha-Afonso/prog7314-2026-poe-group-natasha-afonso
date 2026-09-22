@@ -3,7 +3,6 @@ package com.example.prjmetrix.pages
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,21 +17,15 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,7 +34,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,320 +45,221 @@ import coil.compose.AsyncImage
 import com.example.prjmetrix.ClothingItem
 import com.example.prjmetrix.ClothingViewFact
 import com.example.prjmetrix.ClothingViewModel
-import com.example.prjmetrix.OutfitRepository
-import com.example.prjmetrix.WardrobePreferences
-import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WardrobeScreen(
     onPlannerClick: () -> Unit = {}
 ) {
+
     val context = LocalContext.current
 
-    val vm: ClothingViewModel = viewModel(
-        factory = ClothingViewFact(context)
-    )
+    val clothingViewModel: ClothingViewModel =
+        viewModel(
+            factory = ClothingViewFact(context)
+        )
 
-    val state by vm.uiState.collectAsState()
-
-    var selectedTab by remember {
-        mutableStateOf(0)
-    }
+    val uiState by clothingViewModel
+        .uiState
+        .collectAsState()
 
     var showAddDialog by remember {
         mutableStateOf(false)
     }
 
-    var wallpaperUri by remember {
-        mutableStateOf<Uri?>(null)
-    }
-
-    // DataStore preferences
-    val wardrobePreferences = remember {
-        WardrobePreferences(context)
-    }
-
-    // Coroutine scope used when saving wallpaper
-    val scope = rememberCoroutineScope()
-
-    // Wallpaper image picker
-    val wallpaperPicker =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent()
-        ) { uri ->
-
-            if (uri != null) {
-                wallpaperUri = uri
-
-                scope.launch {
-                    wardrobePreferences.setWallpaper(
-                        uri.toString()
-                    )
-                }
-            }
-        }
-
-    // Load wardrobe and saved wallpaper
     LaunchedEffect(Unit) {
-
-        vm.load()
-
-        wardrobePreferences.wallpaper.collect { savedWallpaper ->
-
-            wallpaperUri =
-                savedWallpaper?.let {
-                    Uri.parse(it)
-                }
-        }
+        clothingViewModel.loadClothing()
     }
 
-    // Load outfits so planner data can be refreshed
-    LaunchedEffect(Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
 
-        runCatching {
-            OutfitRepository(context).getOutfits()
-        }
-    }
-
-    val items: List<ClothingItem> =
-        if (selectedTab == 0) {
-            state.clothing
-        } else {
-            state.wishlist
-        }
-
-    Scaffold(
-        floatingActionButton = {
-
-            FloatingActionButton(
-                onClick = {
-                    showAddDialog = true
-                }
-            ) {
-
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add clothing"
-                )
-            }
-        }
-    ) { paddingValues ->
-
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(20.dp)
         ) {
 
-            if (wallpaperUri != null) {
-
-                AsyncImage(
-                    model = wallpaperUri,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    alpha = 0.15f
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+            // Top section
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    Text(
-                        text = "My Wardrobe",
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-
-                    IconButton(
-                        onClick = {
-                            wallpaperPicker.launch("image/*")
-                        }
-                    ) {
-
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = "Change wallpaper"
-                        )
-                    }
-                }
-
-                Spacer(
-                    modifier = Modifier.height(12.dp)
+                Text(
+                    text = "My Wardrobe"
                 )
 
                 Button(
-                    onClick = onPlannerClick,
-                    modifier = Modifier.fillMaxWidth()
+                    onClick = onPlannerClick
                 ) {
-                    Text("Open Planner")
+                    Text("Planner")
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(20.dp)
+            )
+
+            // Show loading
+            if (uiState.isLoading) {
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    CircularProgressIndicator()
                 }
 
-                Spacer(
-                    modifier = Modifier.height(12.dp)
-                )
+            }
 
-                TabRow(
-                    selectedTabIndex = selectedTab
+            // Show error
+            else if (uiState.errorMessage != null) {
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
                 ) {
-
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = {
-                            selectedTab = 0
-                        },
-                        text = {
-                            Text("My Clothes")
-                        }
-                    )
-
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = {
-                            selectedTab = 1
-                        },
-                        text = {
-                            Text("Wishlist")
-                        }
-                    )
-                }
-
-                Spacer(
-                    modifier = Modifier.height(12.dp)
-                )
-
-                if (state.isLoading) {
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-
-                        Text("Loading...")
-                    }
-
-
-                } else if (state.errorMessage != null) {
 
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
 
                         Text(
-                            text = state.errorMessage
+                            text = uiState.errorMessage
                                 ?: "Something went wrong."
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(10.dp)
+                        )
+
+                        Button(
+                            onClick = {
+                                clothingViewModel.clearError()
+                                clothingViewModel.loadClothing()
+                            }
+                        ) {
+
+                            Text("Try Again")
+                        }
+                    }
+                }
+            }
+
+
+            else if (uiState.clothing.isEmpty()) {
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        Text(
+                            text = "Your wardrobe is empty."
                         )
 
                         Spacer(
                             modifier = Modifier.height(8.dp)
                         )
 
+                        Text(
+                            text = "Add your first clothing item."
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(15.dp)
+                        )
+
                         Button(
                             onClick = {
-                                vm.clearError()
-                                vm.load()
+                                showAddDialog = true
                             }
                         ) {
 
-                            Text("Retry")
-                        }
-                    }
-
-
-                } else if (items.isEmpty()) {
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-
-                        Text(
-                            text =
-                                if (selectedTab == 0) {
-                                    "No clothes added yet."
-                                } else {
-                                    "Your wishlist is empty."
-                                }
-                        )
-                    }
-
-                } else {
-
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement =
-                            Arrangement.spacedBy(12.dp),
-                        verticalArrangement =
-                            Arrangement.spacedBy(12.dp)
-                    ) {
-
-                        items(
-                            items = items,
-                            key = { clothing ->
-                                clothing.id
-                            }
-                        ) { clothing ->
-
-                            ClothingCard(
-                                item = clothing,
-                                onDelete = {
-                                    vm.delete(clothing.id)
-                                }
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add"
                             )
+
+                            Text(" Add Clothing")
                         }
                     }
                 }
             }
+
+            // Show clothing
+            else {
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    items(
+                        items = uiState.clothing,
+                        key = { item -> item.id }
+                    ) { item ->
+
+                        ClothingCard(
+                            item = item,
+                            onDelete = {
+                                clothingViewModel.deleteClothing(
+                                    item.id
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Add button
+        FloatingActionButton(
+            onClick = {
+                showAddDialog = true
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(20.dp)
+        ) {
+
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add clothing"
+            )
         }
     }
 
+    // Add clothing popup
     if (showAddDialog) {
 
-        AddWardrobeDialog(
-            wishlist = selectedTab == 1,
+        AddClothingDialog(
 
             onDismiss = {
                 showAddDialog = false
             },
 
-            onAddClothing = {
-                    name,
-                    category,
-                    uri,
-                    removeBackground ->
+            onAdd = { name, category, imageUri ->
 
-                vm.addClothing(
+                clothingViewModel.addClothing(
                     name = name,
                     category = category,
-                    uri = uri,
-                    removeBackground = removeBackground
-                )
-
-                showAddDialog = false
-            },
-
-            onAddWishlist = {
-                    name,
-                    uri ->
-
-                vm.addWishlist(
-                    name = name,
-                    uri = uri
+                    imageUri = imageUri
                 )
 
                 showAddDialog = false
@@ -375,8 +268,9 @@ fun WardrobeScreen(
     }
 }
 
+
 @Composable
-private fun ClothingCard(
+fun ClothingCard(
     item: ClothingItem,
     onDelete: () -> Unit
 ) {
@@ -385,9 +279,12 @@ private fun ClothingCard(
         modifier = Modifier.fillMaxWidth()
     ) {
 
-        Column {
+        Column(
+            modifier = Modifier.padding(10.dp)
+        ) {
 
-            if (!item.imageUrl.isNullOrBlank()) {
+            // Display image if there is one
+            if (!item.imageUrl.isNullOrEmpty()) {
 
                 AsyncImage(
                     model = item.imageUrl,
@@ -403,10 +300,7 @@ private fun ClothingCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant
-                        ),
+                        .height(180.dp),
                     contentAlignment = Alignment.Center
                 ) {
 
@@ -414,54 +308,42 @@ private fun ClothingCard(
                 }
             }
 
-            Column(
-                modifier = Modifier.padding(10.dp)
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
+
+            Text(
+                text = item.name
+            )
+
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
+
+            Text(
+                text = item.category
+            )
+
+            Spacer(
+                modifier = Modifier.height(5.dp)
+            )
+
+            TextButton(
+                onClick = onDelete
             ) {
 
-                Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                Spacer(
-                    modifier = Modifier.height(4.dp)
-                )
-
-                Text(
-                    text = item.category,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription =
-                            "Delete ${item.name}"
-                    )
-                }
+                Text("Delete")
             }
         }
     }
 }
 
+
 @Composable
-private fun AddWardrobeDialog(
-    wishlist: Boolean,
-
+fun AddClothingDialog(
     onDismiss: () -> Unit,
-
-    onAddClothing: (
+    onAdd: (
         String,
-        String,
-        Uri?,
-        Boolean
-    ) -> Unit,
-
-    onAddWishlist: (
         String,
         Uri?
     ) -> Unit
@@ -472,17 +354,27 @@ private fun AddWardrobeDialog(
     }
 
     var category by remember {
-        mutableStateOf("Top")
+        mutableStateOf("Tops")
     }
 
     var imageUri by remember {
         mutableStateOf<Uri?>(null)
     }
 
-    var removeBackground by remember {
-        mutableStateOf(true)
+    var categoryExpanded by remember {
+        mutableStateOf(false)
     }
 
+    val categories = listOf(
+        "Tops",
+        "Bottoms",
+        "Dresses",
+        "Shoes",
+        "Accessories",
+        "Jackets"
+    )
+
+    // Opens the phone gallery
     val imagePicker =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent()
@@ -491,139 +383,126 @@ private fun AddWardrobeDialog(
             imageUri = uri
         }
 
-    val categories = listOf(
-        "Top",
-        "Bottom",
-        "Dress",
-        "Shoes",
-        "Outerwear",
-        "Accessory"
-    )
-
     AlertDialog(
+
         onDismissRequest = onDismiss,
 
         title = {
-
-            Text(
-                if (wishlist) {
-                    "Add Wishlist Item"
-                } else {
-                    "Add Clothing"
-                }
-            )
+            Text("Add Clothing")
         },
 
         text = {
 
             Column {
 
+                // Clothing name
                 OutlinedTextField(
                     value = name,
-
                     onValueChange = {
                         name = it
                     },
-
                     label = {
-                        Text("Name")
+                        Text("Clothing name")
                     },
-
-                    singleLine = true,
-
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
 
                 Spacer(
-                    modifier = Modifier.height(8.dp)
+                    modifier = Modifier.height(12.dp)
                 )
 
-                if (!wishlist) {
+                // Category
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
 
-                    Text("Category")
-
-                    Spacer(
-                        modifier = Modifier.height(6.dp)
+                    OutlinedTextField(
+                        value = category,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = {
+                            Text("Category")
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement =
-                            Arrangement.spacedBy(6.dp)
+                    DropdownMenu(
+                        expanded = categoryExpanded,
+                        onDismissRequest = {
+                            categoryExpanded = false
+                        }
                     ) {
 
-                        categories
-                            .take(3)
-                            .forEach { value ->
+                        categories.forEach { item ->
 
-                                TextButton(
-                                    onClick = {
-                                        category = value
-                                    }
-                                ) {
+                            DropdownMenuItem(
 
-                                    Text(value)
+                                text = {
+                                    Text(item)
+                                },
+
+                                onClick = {
+
+                                    category = item
+                                    categoryExpanded = false
                                 }
-                            }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement =
-                            Arrangement.spacedBy(6.dp)
-                    ) {
-
-                        categories
-                            .drop(3)
-                            .forEach { value ->
-
-                                TextButton(
-                                    onClick = {
-                                        category = value
-                                    }
-                                ) {
-
-                                    Text(value)
-                                }
-                            }
-                    }
-
-
-                    Row(
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Checkbox(
-                            checked = removeBackground,
-
-                            onCheckedChange = {
-                                removeBackground = it
-                            }
-                        )
-
-                        Text("Remove background")
+                            )
+                        }
                     }
                 }
 
+                // Open dropdown when field is clicked
                 Spacer(
-                    modifier = Modifier.height(8.dp)
+                    modifier = Modifier.height(4.dp)
                 )
 
                 Button(
                     onClick = {
+                        categoryExpanded = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
+                    Text("Choose Category")
+                }
+
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
+
+                // Choose image
+                Button(
+                    onClick = {
+
                         imagePicker.launch("image/*")
                     },
-
                     modifier = Modifier.fillMaxWidth()
                 ) {
 
                     Text(
                         if (imageUri == null) {
-                            "Choose Image"
+                            "Choose Photo"
                         } else {
-                            "Image Selected"
+                            "Change Photo"
                         }
+                    )
+                }
+
+                // Image preview
+                if (imageUri != null) {
+
+                    Spacer(
+                        modifier = Modifier.height(10.dp)
+                    )
+
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = "Selected clothing",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        contentScale = ContentScale.Crop
                     )
                 }
             }
@@ -634,30 +513,18 @@ private fun AddWardrobeDialog(
             Button(
                 onClick = {
 
-                    if (name.isBlank()) {
-                        return@Button
-                    }
+                    if (name.isNotBlank()) {
 
-                    if (wishlist) {
-
-                        onAddWishlist(
-                            name.trim(),
-                            imageUri
-                        )
-
-                    } else {
-
-                        onAddClothing(
-                            name.trim(),
+                        onAdd(
+                            name,
                             category,
-                            imageUri,
-                            removeBackground
+                            imageUri
                         )
                     }
                 }
             ) {
 
-                Text("Save")
+                Text("Add")
             }
         },
 

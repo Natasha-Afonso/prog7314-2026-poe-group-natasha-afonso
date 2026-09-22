@@ -74,7 +74,6 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.4")
     implementation (files("libs/samsung-health-data-api-1.1.0.aar"))
     implementation("io.coil-kt:coil-compose:2.7.0")
-    implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.kotlin.parcelize.runtime)
     implementation(libs.gson)
     implementation(libs.androidx.lifecycle.runtime.compose)

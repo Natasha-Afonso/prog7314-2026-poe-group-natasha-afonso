@@ -26,7 +26,7 @@ import com.example.prjmetrix.pages.WardrobeScreen
 import com.example.prjmetrix.pages.JournalCover
 import com.example.prjmetrix.pages.JournalEntry
 import com.example.prjmetrix.pages.JournalList
-import com.example.prjmetrix.pages.ProfileScreen
+
 
 //(Easy Tuto, 2024)
 @Composable
@@ -34,7 +34,6 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 
     val navController = rememberNavController()
     val context = LocalContext.current
-    val profileViewModel : ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
     val authViewModel : AuthViewModel = viewModel(factory = AuthView2(context))
     val uiState by authViewModel.uiState.collectAsState() //getting the state so we user does not have to login everytime they open the app after login
     val settingsViewModel: SettingsViewModel = viewModel(
@@ -96,18 +95,10 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
         }
             composable("home") {
                 HomeScreen(
-                    onProfileClick = { navController.navigate("profile") },
                     onSettingsClick = { navController.navigate("settings") },
                     onSessionExpired = {authViewModel.signOut() }
                 )
             }
-
-        // Profile
-        composable("profile") {
-
-            ProfileScreen(
-                profileViewModel)
-        }
 
         //Wardrobe
         composable("wardrobe") {
