@@ -14,6 +14,7 @@
           "Microsoft.AspNetCore.OpenApi": "10.0.11",
           "Microsoft.EntityFrameworkCore": "10.0.12",
           "Microsoft.EntityFrameworkCore.SqlServer": "10.0.12",
+          "Microsoft.IdentityModel.Tokens": "8.23.0",
           "Swashbuckle.AspNetCore": "10.2.3",
           "System.IdentityModel.Tokens.Jwt": "8.23.0"
         },
