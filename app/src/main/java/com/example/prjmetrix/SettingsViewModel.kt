@@ -12,6 +12,7 @@ data class SettingsUiState(
     val errorMessage: String? = null
 )
 
+//(Easy Tuto, 2024)
 class SettingsViewModel(
     private val repository: SettingsRepository
 ) : ViewModel() {
@@ -244,6 +245,11 @@ class SettingsViewModel(
         )
     }
 }
-
+/*References
+*
+* Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
+*
+*
+* */
 
 

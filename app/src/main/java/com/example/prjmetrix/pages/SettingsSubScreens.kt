@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
+// Pawar, 2026
 // Language screen
 @Composable
 fun LanguageScreen(navController: NavController) {
@@ -399,3 +400,7 @@ fun AccessibilityScreen(
         }
     }
 }
+
+/*Reference List:
+* Pawar, A. 2026.How to Build a Consistent Custom App Theme in Jetpack Compose (Material 3). [source code] Available at: <https://medium.com/softaai-blogs/how-to-build-a-consistent-custom-app-theme-in-jetpack-compose-material-3-86053f9b8aa1> .[Accessed 20 September 2026].
+* */
