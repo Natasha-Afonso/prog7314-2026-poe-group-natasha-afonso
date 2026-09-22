@@ -1,7 +1,9 @@
 package com.example.prjmetrix
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -10,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -29,12 +32,14 @@ import com.example.prjmetrix.pages.JournalList
 import com.example.prjmetrix.pages.ProfileScreen
 import com.example.prjmetrix.pages.SurveyScaffold
 import com.example.prjmetrix.pages.WelcomeScreen
-
+import androidx.navigation.compose.currentBackStackEntryAsState
 //(Easy Tuto, 2024)
 @Composable
 fun MyAppNavigation(modifier: Modifier = Modifier) {
 
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
     val context = LocalContext.current
     val profileViewModel : ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
     val authViewModel : AuthViewModel = viewModel(factory = AuthView2(context))
@@ -99,8 +104,12 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 
 
 //navigation code for each screen
-    NavHost(navController = navController,
-        startDestination = startDestination) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.fillMaxSize()
+            ) {
         composable("login"){
             LoginScreen(modifier, navController, authViewModel)
         }
@@ -216,22 +225,46 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                 onEditEntry = { id -> navController.navigate("journalentry?entryId=$id") }
             )
         }
-        composable(
-            route = "journalentry?entryId={entryId}",
-            arguments = listOf(navArgument("entryId") {
-                type = NavType.IntType
-                defaultValue = -1
-            })
-        ) { backStackEntry ->
-            val idArg = backStackEntry.arguments?.getInt("entryId") ?: -1
-            JournalEntry(
-                entryId = if (idArg == -1) null else idArg,
-                onDone = { navController.popBackStack() }
-            )
-        }
-    }
-    }
-}
+                composable(
+                    route = "journalentry?entryId={entryId}",
+                    arguments = listOf(navArgument("entryId") {
+                        type = NavType.IntType
+                        defaultValue = -1
+                    })
+                ) { backStackEntry ->
+                    val idArg = backStackEntry.arguments?.getInt("entryId") ?: -1
+                    JournalEntry(
+                        entryId = if (idArg == -1) null else idArg,
+                        onDone = { navController.popBackStack() }
+                    )
+                }
+            }
+
+            if (
+                currentRoute == "home" ||
+                currentRoute == "wardrobe" ||
+                currentRoute == "journalcover" ||
+                currentRoute == "profile"
+            ) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 40.dp)
+                ) {
+                    BottomNavigation(
+                        currentRoute = currentRoute,
+                        onNavigate = { route ->
+                            navController.navigate(route) {
+                                popUpTo("home") {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                }
+            }}}}
 
 /*References
 *
