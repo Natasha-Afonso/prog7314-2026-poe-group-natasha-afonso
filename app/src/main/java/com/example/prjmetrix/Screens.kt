@@ -38,6 +38,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -122,7 +124,7 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.LocalTime
-
+import androidx.compose.foundation.lazy.grid.items
 
 // DATA MODELS
 data class HabitCircle(
@@ -234,7 +236,40 @@ fun HomeScreen(
    var avatarRootPosition by remember { mutableStateOf(Offset.Zero) }
    var pieMenuCenter by remember { mutableStateOf<Offset?>(null) }
 var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
-
+   val furnitureItems = remember {
+      listOf(
+         FurnitureItem(
+            id = "lamp",
+            name = "Blue Lamp",
+            imageRes = R.drawable.blue_lamp
+         ),
+         FurnitureItem(
+            id = "chair",
+            name = "Chair",
+            imageRes = R.drawable.blue_lamp
+         ),
+         FurnitureItem(
+            id = "plant",
+            name = "Plant",
+            imageRes = R.drawable.blue_lamp
+         ),
+         FurnitureItem(
+            id = "dresser",
+            name = "Dresser",
+            imageRes = R.drawable.blue_lamp
+         ),
+         FurnitureItem(
+            id = "bed",
+            name = "Bed",
+            imageRes = R.drawable.blue_lamp
+         ),
+         FurnitureItem(
+            id = "sofa",
+            name = "Sofa",
+            imageRes = R.drawable.blue_lamp
+         )
+      )
+   }
 
    var dailyRewardClaimed by remember { mutableStateOf(false) }
    var showRewardPopup by remember { mutableStateOf(false) }
@@ -823,6 +858,12 @@ var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
             }
          }
       }
+
+      if(isEditMode)
+      {
+         FurnitureInventory(
+         furnitureItems = furnitureItems
+      )}
       // AVATAR PIE MENU
       pieMenuCenter?.let { center ->
          AvatarPieMenu(
@@ -1230,6 +1271,138 @@ fun StepsChip(
       )
    }
 }
+
+
+@Composable
+fun FurnitureInventory(
+   furnitureItems: List<FurnitureItem>
+) {
+   Card(
+      modifier = Modifier
+         .fillMaxWidth()
+         .height(190.dp)
+         .padding(horizontal = 14.dp)
+         .offset(y = (-10).dp),
+      shape = RoundedCornerShape(18.dp),
+      colors = CardDefaults.cardColors(
+         containerColor = Color.White.copy(alpha = 0.94f)
+      ),
+      elevation = CardDefaults.cardElevation(
+         defaultElevation = 8.dp
+      )
+   ) {
+      Column(
+         modifier = Modifier
+            .fillMaxSize()
+            .padding(12.dp)
+      ) {
+
+         // Inventory header
+         Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+         ) {
+            Column(
+               modifier = Modifier.weight(1f)
+            ) {
+               Text(
+                  text = "YOUR FURNITURE",
+                  fontSize = 12.sp,
+                  fontWeight = FontWeight.ExtraBold,
+                  color = Color(0xFF43302E)
+               )
+
+               Spacer(modifier = Modifier.height(2.dp))
+
+               Text(
+                  text = "Drag items into your room",
+                  fontSize = 8.5.sp,
+                  color = Color(0xFF90A4AE)
+               )
+            }
+
+            Text(
+               text = "EDIT MODE",
+               fontSize = 8.sp,
+               fontWeight = FontWeight.Bold,
+               color = Color(0xFF0284C7)
+            )
+         }
+
+         Spacer(modifier = Modifier.height(8.dp))
+
+         // Scrollable furniture area
+         LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+         ) {
+            items(
+               items = furnitureItems,
+               key = { it.id }
+            ) { furniture ->
+
+               FurnitureInventoryItem(
+                  furniture = furniture
+               )
+            }
+         }
+      }
+   }
+}
+
+
+@Composable
+fun FurnitureInventoryItem(
+   furniture: FurnitureItem
+) {
+   Card(
+      modifier = Modifier
+         .fillMaxWidth()
+         .height(82.dp),
+      shape = RoundedCornerShape(12.dp),
+      colors = CardDefaults.cardColors(
+         containerColor = Color(0xFFF8FAFC)
+      ),
+      border = BorderStroke(
+         1.dp,
+         Color(0xFFE2E8F0)
+      ),
+      elevation = CardDefaults.cardElevation(
+         defaultElevation = 1.dp
+      )
+   ) {
+      Column(
+         modifier = Modifier.fillMaxSize(),
+         horizontalAlignment = Alignment.CenterHorizontally,
+         verticalArrangement = Arrangement.Center
+      ) {
+
+         Image(
+            painter = painterResource(
+               id = furniture.imageRes
+            ),
+            contentDescription = furniture.name,
+            modifier = Modifier
+               .height(48.dp)
+               .fillMaxWidth(),
+            contentScale = ContentScale.Fit
+         )
+
+         Spacer(modifier = Modifier.height(3.dp))
+
+         Text(
+            text = furniture.name,
+            fontSize = 8.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF43302E),
+            maxLines = 1
+         )
+      }
+   }
+}
+
 
 // AVATAR PIE MENU
 @Composable
