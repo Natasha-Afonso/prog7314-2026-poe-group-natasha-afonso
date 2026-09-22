@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -71,6 +72,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -81,6 +83,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -101,9 +104,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sqrt
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.filled.CardGiftcard
@@ -117,12 +122,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.prjmetrix.pages.AvatarView
 import com.samsung.android.sdk.health.data.error.HealthDataException
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.LocalTime
-
 
 // DATA MODELS
 data class HabitCircle(
@@ -151,11 +157,31 @@ data class NavigationItem(
 
 private  const val FALLBACK_STEP_GOAL = 6000
 
+// ROOM BACKGROUND
+val roomBackgrounds = listOf(R.drawable.img_10)
+
 private fun timeGreeting(): String = when (LocalTime.now().hour) {
    in 5..11 -> "Good Morning"
    in 12..16 -> "Good afternoon"
    in 17..21 -> "Good evening"
    else -> "Hello"
+}
+
+// MOOD HELPERS — maps the picked emoji to a happiness score + label for the mood card
+private fun moodScore(emoji: String): Float = when (emoji) {
+   "😍", "😆" -> 1f
+   "😃", "😎" -> 0.8f
+   "😐", "😶" -> 0.5f
+   "😔" -> 0.25f
+   "😡" -> 0.1f
+   else -> 0.5f
+}
+
+private fun moodLabel(score: Float): String = when {
+   score >= 0.8f -> "HAPPINESS: FEELING GREAT"
+   score >= 0.5f -> "HAPPINESS: DOING OKAY"
+   score >= 0.25f -> "HAPPINESS: COULD BE BETTER"
+   else -> "HAPPINESS: HAVING A ROUGH DAY"
 }
 
 data class PieMenuItem(
@@ -220,10 +246,36 @@ fun HomeScreen(
 ) {
    val context = LocalContext.current
    val scope = rememberCoroutineScope()
+   val density = LocalDensity.current
+
+   // PROFILE / AVATAR
+   // Same ViewModel + factory ProfileScreen uses, so Home always reflects whatever
+   // was last saved on the Profile screen.
+   val profileViewModel: ProfileViewModel = viewModel(
+      factory = ProfileViewModelFactory(context)
+   )
+   val profileUiState by profileViewModel.uiState.collectAsState()
+
+   val avatarLayers = remember(profileUiState) {
+      val profile = (profileUiState as? ProfileUiState.Ready)?.profile
+      if (profile != null) {
+         buildAvatarLayers(
+            bodyRef = profile.bodyRef,
+            hairRef = profile.hairRef,
+            extensionRef = profile.extensionRef,
+            eyeColor = profile.eyeColor,
+            mouthRef = profile.mouthRef,
+            lipstickRef = profile.lipstickRef
+         )
+      } else {
+         emptyList()
+      }
+   }
+
    // STATE
    var userCoins by remember { mutableIntStateOf(1250) }
    var showNewsBoard by remember { mutableStateOf(false) }
-    val newsItems = remember {mutableStateListOf(*sampleNewList.toTypedArray())}
+   val newsItems = remember {mutableStateListOf(*sampleNewList.toTypedArray())}
    // QUEST CARD VISIBILITY & EXPANSION STATES
    var isQuestCardVisible by remember { mutableStateOf(true) }
    var isQuestCardExpanded by remember { mutableStateOf(false) }
@@ -233,8 +285,6 @@ fun HomeScreen(
    var selectedMood by remember { mutableStateOf<String?>(null) }
    var avatarRootPosition by remember { mutableStateOf(Offset.Zero) }
    var pieMenuCenter by remember { mutableStateOf<Offset?>(null) }
-var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
-
 
    var dailyRewardClaimed by remember { mutableStateOf(false) }
    var showRewardPopup by remember { mutableStateOf(false) }
@@ -289,6 +339,16 @@ var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
       }
    }
 
+   // Bumps a habit's progress by 25% per interaction (tapping the liquid circle, or
+   // picking it from the avatar's pie menu) instead of snapping straight to 100% the
+   // moment you touch it.
+   val bumpHabitProgress: (Int) -> Unit = { index ->
+      val habit = habitCircles[index]
+      val newProg = (habit.progress + 0.25f).coerceAtMost(1f)
+      habitCircles[index] = habit.copy(progress = newProg)
+      saveProgress(habit.id, newProg)
+   }
+
    LaunchedEffect(Unit) { loadHabits() }
 
    // Pinned top 3 daily habits
@@ -310,10 +370,7 @@ var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
          icon = habit.icon,
          label = habit.label,
          color = habit.color,
-         onSelect = {
-            habitCircles[index] = habit.copy(progress = 1f)
-            saveProgress(habit.id, 1f)
-         }
+         onSelect = { bumpHabitProgress(index) }
       )
    }
 
@@ -323,6 +380,11 @@ var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
    var stepsPermissionGranted by remember { mutableStateOf(false) }
    var prefs = remember {context.getSharedPreferences("metrix_prefs", Context.MODE_PRIVATE)}
    var greetingShown by remember { mutableStateOf(false) }
+
+   // Load today's saved mood (if any) once prefs is available
+   LaunchedEffect(Unit) {
+      selectedMood = prefs.getString("mood_${LocalDate.now()}", null)
+   }
 
    val refreshSteps: () -> Unit = {
       scope.launch {
@@ -379,75 +441,36 @@ var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
 
       // Background
       Image(
-         painter = painterResource(id = R.drawable.img_10),
+         painter = painterResource(id = roomBackgrounds[0]),
          contentDescription = "Room background",
          modifier = Modifier.fillMaxWidth().height(700.dp).align(Alignment.TopStart),
          contentScale = ContentScale.FillHeight
       )
 
-      if (isEditMode) {
-         Row(
-            modifier = Modifier
-               .fillMaxWidth()
-               .statusBarsPadding()
-               .padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.End
-         ) {
-            Button(
-               onClick = {
-                  isEditMode = false
-               },
-               shape = RoundedCornerShape(50),
-               colors = ButtonDefaults.buttonColors(
-                  containerColor = Color.White.copy(alpha = 0.9f),
-                  contentColor = Color(0xFF6D4C41)
-               )
-            ) {
-               Icon(
-                  imageVector = Icons.Default.Check,
-                  contentDescription = "Save",
-                  modifier = Modifier.size(16.dp)
-               )
-
-               Spacer(modifier = Modifier.width(4.dp))
-
-               Text(
-                  text = "Done",
-                  fontSize = 11.sp,
-                  fontWeight = FontWeight.Bold
-               )
-            }
-         }
-      }
-
       // Avatar Shadow
-      if (!isEditMode) {
-         Box(
-            modifier = Modifier
-               .width(90.dp).height(16.dp)
-               .align(Alignment.Center).offset(y = 232.dp)
-               .clip(RoundedCornerShape(50))
-               .background(Color.Black.copy(alpha = 0.18f))
-         )
-      }
-      if (!isEditMode) {
-         // Avatar Layer
-         Image(
-            painter = painterResource(id = R.drawable.base_body_f),
-            contentDescription = "Avatar",
-            modifier = Modifier
-               .fillMaxWidth()
-               .height(500.dp)
-               .align(Alignment.Center)
-               .onGloballyPositioned { coords -> avatarRootPosition = coords.positionInRoot() }
-               .pointerInput(Unit) {
-                  detectTapGestures(onTap = { local ->
-                     pieMenuCenter = avatarRootPosition + local
-                  })
-               },
-            contentScale = ContentScale.FillHeight
-         )
-      }
+      Box(
+         modifier = Modifier
+            .width(90.dp).height(16.dp)
+            .align(Alignment.Center).offset(y = 232.dp)
+            .clip(RoundedCornerShape(50))
+            .background(Color.Black.copy(alpha = 0.18f))
+      )
+
+      // Avatar Layer — drawn from the same profile data as the Profile screen, so
+      // hair/eyes/lips/body picked there show up here automatically.
+      AvatarView(
+         layers = avatarLayers,
+         modifier = Modifier
+            .fillMaxWidth()
+            .height(500.dp)
+            .align(Alignment.Center)
+            .onGloballyPositioned { coords -> avatarRootPosition = coords.positionInRoot() }
+            .pointerInput(Unit) {
+               detectTapGestures(onTap = { local ->
+                  pieMenuCenter = avatarRootPosition + local
+               })
+            }
+      )
       Image(
          painter = painterResource(id = R.drawable.blue_lamp),
          contentDescription = "Blue lamp",
@@ -458,53 +481,41 @@ var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
          contentScale = ContentScale.Fit
       )
 
-      if (!isEditMode) {
-         // LIQUID HABIT CIRCLES
-         Column(
-            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-16).dp, y = 210.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-            horizontalAlignment = Alignment.End
-         ) {
-            habitCircles.forEachIndexed { index, habit ->
-               LiquidHabitCircle(
-                  label = habit.label,
-                  icon = habit.icon,
-                  progress = habit.progress,
-                  liquidColor = habit.color,
-                  onClick = {
-                     val newProg = (habit.progress + 0.25f).coerceAtMost(1f)
-                     habitCircles[index] = habit.copy(progress = newProg)
-                     saveProgress(habit.id, newProg)
-                  }
-               )
-            }
+      // LIQUID HABIT CIRCLES
+      Column(
+         modifier = Modifier.align(Alignment.TopEnd).offset(x = (-16).dp, y = 210.dp),
+         verticalArrangement = Arrangement.spacedBy(18.dp),
+         horizontalAlignment = Alignment.End
+      ) {
+         habitCircles.forEachIndexed { index, habit ->
+            LiquidHabitCircle(
+               label = habit.label,
+               icon = habit.icon,
+               progress = habit.progress,
+               liquidColor = habit.color,
+               onClick = { bumpHabitProgress(index) }
+            )
          }
       }
 
-      if (!isEditMode) {
-         // TOP APP BAR
-         JetpackTopNavbar(
-            coins = userCoins,
-            todoCount = todos.count { !it.done },
-            todoPanelOpen = isQuestCardVisible,
-            hasUnreadNews = newsItems.isNotEmpty(),
-            newsBoardOpen = showNewsBoard,
-            onTodoClick = {
-               // Toggle visibility on menu button tap
-               isQuestCardVisible = !isQuestCardVisible
-            },
-            onNewsClick = {
-               showNewsBoard = !showNewsBoard
-            },
-            onProfileClick = { },
-            onEditClick = {
-               isEditMode = true
-            },
-            onSettingsClick = onSettingsClick
-         )
-      }
+      // TOP APP BAR
+      JetpackTopNavbar(
+         coins = userCoins,
+         todoCount = todos.count { !it.done },
+         todoPanelOpen = isQuestCardVisible,
+         hasUnreadNews = newsItems.isNotEmpty(),
+         newsBoardOpen = showNewsBoard,
+         onTodoClick = {
+            // Toggle visibility on menu button tap
+            isQuestCardVisible = !isQuestCardVisible
+         },
+         onNewsClick = {
+            showNewsBoard = !showNewsBoard
+         },
+         onProfileClick = { },
+         onSettingsClick = onSettingsClick
+      )
 
-      if (!isEditMode) {
       // SINGLE ALL-IN-ONE QUEST & HABITS CONTAINER
       AnimatedVisibility(
          visible = isQuestCardVisible,
@@ -605,224 +616,223 @@ var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
                   }
                }
 
-                  // EXPANDED PORTION: Divider + Remaining Habits
-                  if (isQuestCardExpanded) {
-                     Spacer(modifier = Modifier.height(6.dp))
-                     HorizontalDivider(thickness = 1.dp, color = Color(0xFFE0E0E0))
-                     Spacer(modifier = Modifier.height(6.dp))
-
-                     Text(
-                        text = "ALL HABITS",
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFF9E9E9E),
-                        modifier = Modifier.padding(bottom = 2.dp)
-                     )
-
-                     otherHabits.forEach { item ->
-                        val origIndex = todos.indexOf(item)
-                        TodoRow(item = item, onToggle = {
-                           if (origIndex != -1) {
-                              val updated = !todos[origIndex].done
-                              todos[origIndex] = todos[origIndex].copy(done = updated)
-                              saveProgress(item.id, if (updated) 1f else 0f)
-                           }
-                        })
-                     }
-
-                     Spacer(modifier = Modifier.height(6.dp))
-
-                     // Add Habit Trigger inside list
-                     Row(
-                        modifier = Modifier
-                           .fillMaxWidth()
-                           .height(24.dp)
-                           .clickable { showAddHabitDialog = true },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(11.dp))
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text("Add habit", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                     }
-                  }
-               }
-
-               Spacer(modifier = Modifier.height(4.dp))
-
-               // Expand / Collapse Trigger
-               Row(
-                  modifier = Modifier
-                     .fillMaxWidth()
-                     .clickable { isQuestCardExpanded = !isQuestCardExpanded },
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.Center
-               ) {
-                  Text(
-                     text = if (isQuestCardExpanded) "Show Less" else "View All Habits",
-                     fontSize = 8.5.sp,
-                     fontWeight = FontWeight.Bold,
-                     color = Color(0xFF0284C7)
-                  )
-                  Icon(
-                     imageVector = if (isQuestCardExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                     contentDescription = null,
-                     tint = Color(0xFF0284C7),
-                     modifier = Modifier.size(11.dp)
-                  )
-               }
-            }
-         }
-      }
-
-      if (!isEditMode) {
-         // REWARD CLAIM POPUP
-         if (showRewardPopup) {
-            Card(
-               modifier = Modifier
-                  .width(180.dp)
-                  .align(Alignment.TopStart)
-                  .offset(x = 8.dp, y = 250.dp),
-               shape = RoundedCornerShape(14.dp),
-               colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
-               border = BorderStroke(2.dp, Color(0xFFFBC02D)),
-               elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
-            ) {
-               Column(
-                  modifier = Modifier.padding(10.dp),
-                  horizontalAlignment = Alignment.CenterHorizontally
-               ) {
-                  Text(
-                     "✨ Quests Complete! ✨",
-                     fontWeight = FontWeight.ExtraBold,
-                     fontSize = 10.sp,
-                     color = Color(0xFFF57F17)
-                  )
-                  Spacer(modifier = Modifier.height(2.dp))
-                  Text("Completed today's 3 habits!", fontSize = 8.5.sp, color = Color(0xFF5D4037))
+               // EXPANDED PORTION: Divider + Remaining Habits
+               if (isQuestCardExpanded) {
                   Spacer(modifier = Modifier.height(6.dp))
-                  Button(
-                     onClick = {
-                        userCoins += 500
-                        dailyRewardClaimed = true
-                        showRewardPopup = false
-                     },
-                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFBC02D)),
-                     shape = RoundedCornerShape(50)
+                  HorizontalDivider(thickness = 1.dp, color = Color(0xFFE0E0E0))
+                  Spacer(modifier = Modifier.height(6.dp))
+
+                  Text(
+                     text = "ALL HABITS",
+                     fontSize = 8.sp,
+                     fontWeight = FontWeight.Black,
+                     color = Color(0xFF9E9E9E),
+                     modifier = Modifier.padding(bottom = 2.dp)
+                  )
+
+                  otherHabits.forEach { item ->
+                     val origIndex = todos.indexOf(item)
+                     TodoRow(item = item, onToggle = {
+                        if (origIndex != -1) {
+                           val updated = !todos[origIndex].done
+                           todos[origIndex] = todos[origIndex].copy(done = updated)
+                           saveProgress(item.id, if (updated) 1f else 0f)
+                        }
+                     })
+                  }
+
+                  Spacer(modifier = Modifier.height(6.dp))
+
+                  // Add Habit Trigger inside list
+                  Row(
+                     modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp)
+                        .clickable { showAddHabitDialog = true },
+                     verticalAlignment = Alignment.CenterVertically,
+                     horizontalArrangement = Arrangement.Center
                   ) {
-                     Text(
-                        "Claim 🪙 500",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 9.5.sp
-                     )
+                     Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(11.dp))
+                     Spacer(modifier = Modifier.width(3.dp))
+                     Text("Add habit", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                   }
                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Expand / Collapse Trigger
+            Row(
+               modifier = Modifier
+                  .fillMaxWidth()
+                  .clickable { isQuestCardExpanded = !isQuestCardExpanded },
+               verticalAlignment = Alignment.CenterVertically,
+               horizontalArrangement = Arrangement.Center
+            ) {
+               Text(
+                  text = if (isQuestCardExpanded) "Show Less" else "View All Habits",
+                  fontSize = 8.5.sp,
+                  fontWeight = FontWeight.Bold,
+                  color = Color(0xFF0284C7)
+               )
+               Icon(
+                  imageVector = if (isQuestCardExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                  contentDescription = null,
+                  tint = Color(0xFF0284C7),
+                  modifier = Modifier.size(11.dp)
+               )
             }
          }
       }
 
-      if (!isEditMode) {
-         // NEWS BOARD
-         AnimatedVisibility(
-            visible = showNewsBoard,
-            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-12).dp, y = 80.dp),
-            enter = expandVertically(),
-            exit = shrinkVertically()
-         ) {
-            NewsBoard(
-               newsList = newsItems,
-               onDismissItem = { id -> newsItems.removeAll { it.id == id } },
-               onClearAll = { newsItems.clear() },
-               onClose = { showNewsBoard = false })
-         }
-      }
-
-      if (!isEditMode) {
-         // BOTTOM CARD
+      // REWARD CLAIM POPUP
+      if (showRewardPopup) {
          Card(
             modifier = Modifier
-               .fillMaxWidth().height(180.dp)
-               .padding(horizontal = 14.dp)
-               .align(Alignment.BottomCenter)
-               .offset(y = (-10).dp),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+               .width(180.dp)
+               .align(Alignment.TopStart)
+               .offset(x = 8.dp, y = 250.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
+            border = BorderStroke(2.dp, Color(0xFFFBC02D)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
          ) {
             Column(
-               modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                  .padding(12.dp)
+               modifier = Modifier.padding(10.dp),
+               horizontalAlignment = Alignment.CenterHorizontally
             ) {
-               Row(
-                  modifier = Modifier.fillMaxWidth(),
-                  verticalAlignment = Alignment.CenterVertically
+               Text(
+                  "✨ Quests Complete! ✨",
+                  fontWeight = FontWeight.ExtraBold,
+                  fontSize = 10.sp,
+                  color = Color(0xFFF57F17)
+               )
+               Spacer(modifier = Modifier.height(2.dp))
+               Text("Completed today's 3 habits!", fontSize = 8.5.sp, color = Color(0xFF5D4037))
+               Spacer(modifier = Modifier.height(6.dp))
+               Button(
+                  onClick = {
+                     userCoins += 500
+                     dailyRewardClaimed = true
+                     showRewardPopup = false
+                  },
+                  colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFBC02D)),
+                  shape = RoundedCornerShape(50)
                ) {
                   Text(
-                     text = if (selectedMood == null) "ADD YOUR MOOD" else "HAPPINESS: EXTREMELY DELULU ✨",
-                     fontSize = 12.sp,
-                     fontWeight = FontWeight.ExtraBold,
-                     color = Color(0xFF43302E),
-                     modifier = Modifier.weight(1f)
-                  )
-                  Icon(
-                     Icons.Default.KeyboardArrowUp,
-                     contentDescription = null,
-                     tint = Color(0xFF64748B)
-                  )
-               }
-
-               Spacer(modifier = Modifier.height(8.dp))
-
-               if (selectedMood != null) {
-                  LinearProgressIndicator(
-                     progress = { 0.85f },
-                     color = Color(0xFF00BCD4),
-                     modifier = Modifier.fillMaxWidth().height(9.dp)
-                  )
-                  Spacer(modifier = Modifier.height(12.dp))
-               }
-
-               Row(
-                  modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                  horizontalArrangement = Arrangement.spacedBy(6.dp)
-               ) {
-                  listOf("😃", "😔", "😐", "😍", "😆", "😎", "😶", "😡").forEach { emoji ->
-                     Card(
-                        modifier = Modifier.size(36.dp),
-                        shape = RoundedCornerShape(9.dp),
-                        colors = CardDefaults.cardColors(
-                           containerColor = if (emoji == selectedMood) Color(0xFFB2EBF2) else Color(
-                              0xFFE2E8F0
-                           )
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        border = if (emoji == selectedMood) BorderStroke(
-                           1.5.dp,
-                           Color(0xFF00BCD4)
-                        ) else null
-                     ) {
-                        Box(
-                           modifier = Modifier.fillMaxSize().clickable { selectedMood = emoji },
-                           contentAlignment = Alignment.Center
-                        ) {
-                           Text(text = emoji, fontSize = 17.sp)
-                        }
-                     }
-                  }
-               }
-
-               if (selectedMood == null) {
-                  Spacer(modifier = Modifier.height(8.dp))
-                  Text(
-                     text = "Tap an emoji to log today's mood",
-                     fontSize = 10.sp,
-                     color = Color(0xFF90A4AE)
+                     "Claim 🪙 500",
+                     color = Color.Black,
+                     fontWeight = FontWeight.Bold,
+                     fontSize = 9.5.sp
                   )
                }
             }
          }
       }
+
+      // NEWS BOARD
+      AnimatedVisibility(
+         visible = showNewsBoard,
+         modifier = Modifier.align(Alignment.TopEnd).offset(x = (-12).dp, y = 80.dp),
+         enter = expandVertically(),
+         exit = shrinkVertically()
+      ) {
+         NewsBoard(
+            newsList = newsItems,
+            onDismissItem = { id -> newsItems.removeAll { it.id == id } },
+            onClearAll = { newsItems.clear() },
+            onClose = { showNewsBoard = false })
+      }
+
+      // BOTTOM CARD — MOOD
+      Card(
+         modifier = Modifier
+            .fillMaxWidth().height(180.dp)
+            .padding(horizontal = 14.dp)
+            .align(Alignment.BottomCenter)
+            .navigationBarsPadding()
+            .offset(y = (-10).dp),
+         shape = RoundedCornerShape(18.dp),
+         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+      ) {
+         Column(
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+               .padding(12.dp)
+         ) {
+            Row(
+               modifier = Modifier.fillMaxWidth(),
+               verticalAlignment = Alignment.CenterVertically
+            ) {
+               Text(
+                  text = if (selectedMood == null) "ADD YOUR MOOD" else moodLabel(moodScore(selectedMood!!)),
+                  fontSize = 12.sp,
+                  fontWeight = FontWeight.ExtraBold,
+                  color = Color(0xFF43302E),
+                  modifier = Modifier.weight(1f)
+               )
+               Icon(
+                  Icons.Default.KeyboardArrowUp,
+                  contentDescription = null,
+                  tint = Color(0xFF64748B)
+               )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (selectedMood != null) {
+               LinearProgressIndicator(
+                  progress = { moodScore(selectedMood!!) },
+                  color = Color(0xFF00BCD4),
+                  modifier = Modifier.fillMaxWidth().height(9.dp)
+               )
+               Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            Row(
+               modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+               horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+               listOf("😃", "😔", "😐", "😍", "😆", "😎", "😶", "😡").forEach { emoji ->
+                  Card(
+                     modifier = Modifier.size(36.dp),
+                     shape = RoundedCornerShape(9.dp),
+                     colors = CardDefaults.cardColors(
+                        containerColor = if (emoji == selectedMood) Color(0xFFB2EBF2) else Color(
+                           0xFFE2E8F0
+                        )
+                     ),
+                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                     border = if (emoji == selectedMood) BorderStroke(
+                        1.5.dp,
+                        Color(0xFF00BCD4)
+                     ) else null
+                  ) {
+                     Box(
+                        modifier = Modifier.fillMaxSize().clickable {
+                           selectedMood = emoji
+                           // Persist today's mood so it survives navigating away / app restart
+                           prefs.edit().putString("mood_${LocalDate.now()}", emoji).apply()
+                        },
+                        contentAlignment = Alignment.Center
+                     ) {
+                        Text(text = emoji, fontSize = 17.sp)
+                     }
+                  }
+               }
+            }
+
+            if (selectedMood == null) {
+               Spacer(modifier = Modifier.height(8.dp))
+               Text(
+                  text = "Tap an emoji to log today's mood",
+                  fontSize = 10.sp,
+                  color = Color(0xFF90A4AE)
+               )
+            }
+         }
+      }
+
       // AVATAR PIE MENU
       pieMenuCenter?.let { center ->
          AvatarPieMenu(
@@ -1020,11 +1030,11 @@ fun NewsBoard(
    onClose: () -> Unit) {
    Card(
       modifier = Modifier.width(220.dp)
-      .offset(x = 8.dp, y = 20.dp),
+         .offset(x = 8.dp, y = 20.dp),
       shape = RoundedCornerShape(14.dp),
       colors = CardDefaults.cardColors(containerColor = Color(0xEECCCCCC)),
       elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-    //  border = BorderStroke(2.dp, Color.White)
+      //  border = BorderStroke(2.dp, Color.White)
    ) {
       Column(modifier = Modifier.padding(5.dp)
       ) {
@@ -1052,33 +1062,33 @@ fun NewsBoard(
 
          Spacer(modifier = Modifier.height(6.dp))
 
-   if (newsList.isEmpty()) {
-         Text(
-            text = "You're all caught up",
-            fontSize = 8.sp,
-            color = Color(0xFF90A4AE),
-            modifier = Modifier.padding(vertical = 8.dp)
-         )
-      }
-      else {
-      LazyColumn(
-         modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp),//fixed height
-         verticalArrangement = Arrangement.spacedBy(4.dp)
-      ) {
-         items(
-            items = newsList,
-            key = { it.id }
-         ) { item ->
-            NotificationCardItem(
-               item = item,
-               onDismiss = { onDismissItem(item.id) }
+         if (newsList.isEmpty()) {
+            Text(
+               text = "You're all caught up",
+               fontSize = 8.sp,
+               color = Color(0xFF90A4AE),
+               modifier = Modifier.padding(vertical = 8.dp)
             )
          }
+         else {
+            LazyColumn(
+               modifier = Modifier
+                  .fillMaxWidth()
+                  .height(100.dp),//fixed height
+               verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+               items(
+                  items = newsList,
+                  key = { it.id }
+               ) { item ->
+                  NotificationCardItem(
+                     item = item,
+                     onDismiss = { onDismissItem(item.id) }
+                  )
+               }
 
-      }
-      }
+            }
+         }
 
 
 
@@ -1102,9 +1112,9 @@ fun NewsBoard(
 
          Spacer(modifier = Modifier.height(8.dp))
 
-         }
       }
    }
+}
 
 @Composable
 fun  NotificationCardItem(
@@ -1231,7 +1241,11 @@ fun StepsChip(
    }
 }
 
+
 // AVATAR PIE MENU
+// A Sims-style radial menu: a ring of wedges around the tap point, one per habit.
+// Tapping anywhere inside a wedge (not just directly on its icon) selects it, and
+// tapping the centre hole or outside the ring dismisses the menu.
 @Composable
 fun AvatarPieMenu(
    center: Offset,
@@ -1239,51 +1253,112 @@ fun AvatarPieMenu(
    onDismiss: () -> Unit
 ) {
    val density = LocalDensity.current
-   val radiusPx = with(density) { 96.dp.toPx() }
-   val itemSizeDp = 46.dp
-   val itemSizePx = with(density) { itemSizeDp.toPx() }
+   val outerRadiusDp = 108.dp
+   val innerRadiusDp = 32.dp
+   val outerRadiusPx = with(density) { outerRadiusDp.toPx() }
+   val innerRadiusPx = with(density) { innerRadiusDp.toPx() }
+   val iconRadiusPx = (outerRadiusPx + innerRadiusPx) / 2f
+   val gapDeg = 3f // gap between wedges, in degrees
 
-   val startAngleDeg = -160f
-   val endAngleDeg = -20f
-   val angleStep = if (items.size > 1) (endAngleDeg - startAngleDeg) / (items.size - 1) else 0f
+   val sliceCount = items.size.coerceAtLeast(1)
+   val sliceAngle = 360f / sliceCount
 
    Box(
       modifier = Modifier
          .fillMaxSize()
-         .background(Color.Black.copy(alpha = 0.22f))
-         .pointerInput(Unit) {
-            detectTapGestures(onTap = { onDismiss() })
+         .background(Color.Black.copy(alpha = 0.35f))
+         .pointerInput(items, center) {
+            detectTapGestures(onTap = { tapOffset ->
+               val dx = tapOffset.x - center.x
+               val dy = tapOffset.y - center.y
+               val dist = sqrt(dx * dx + dy * dy)
+               if (items.isEmpty() || dist < innerRadiusPx || dist > outerRadiusPx) {
+                  onDismiss()
+               } else {
+                  var angleDeg = Math.toDegrees(atan2(dy, dx).toDouble()).toFloat()
+                  if (angleDeg < 0f) angleDeg += 360f
+                  val index = (angleDeg / sliceAngle).toInt().coerceIn(0, items.size - 1)
+                  items[index].onSelect()
+                  onDismiss()
+               }
+            })
          }
    ) {
+      // The wedge ring itself
+      Canvas(
+         modifier = Modifier
+            .size(outerRadiusDp * 2)
+            .offset {
+               IntOffset(
+                  (center.x - outerRadiusPx).roundToInt(),
+                  (center.y - outerRadiusPx).roundToInt()
+               )
+            }
+      ) {
+         items.forEachIndexed { index, item ->
+            val startAngle = index * sliceAngle + gapDeg / 2f
+            val sweepAngle = sliceAngle - gapDeg
+            drawArc(
+               color = item.color.copy(alpha = 0.95f),
+               startAngle = startAngle,
+               sweepAngle = sweepAngle,
+               useCenter = true,
+               size = Size(outerRadiusPx * 2, outerRadiusPx * 2)
+            )
+         }
+         // Punch the centre out so it reads as a ring, like the Sims radial menu
+         drawCircle(
+            color = Color.White,
+            radius = innerRadiusPx,
+            center = Offset(outerRadiusPx, outerRadiusPx)
+         )
+      }
+
+      // One icon per wedge — purely visual, taps are handled by the Box above
       items.forEachIndexed { index, item ->
-         val angleRad = Math.toRadians((startAngleDeg + angleStep * index).toDouble())
-         val x = center.x + radiusPx * cos(angleRad).toFloat() - itemSizePx / 2f
-         val y = center.y + radiusPx * sin(angleRad).toFloat() - itemSizePx / 2f
+         val midAngleDeg = index * sliceAngle + sliceAngle / 2f
+         val midAngleRad = Math.toRadians(midAngleDeg.toDouble())
+         val iconX = center.x + iconRadiusPx * cos(midAngleRad).toFloat()
+         val iconY = center.y + iconRadiusPx * sin(midAngleRad).toFloat()
+         val halfIconPx = with(density) { 11.dp.toPx() }
 
          Box(
             modifier = Modifier
-               .offset { IntOffset(x.roundToInt(), y.roundToInt()) }
-               .size(itemSizeDp)
-               .clip(CircleShape)
-               .background(Color.White)
-               .border(2.dp, item.color, CircleShape)
-               .clickable {
-                  item.onSelect()
-                  onDismiss()
-               },
+               .offset {
+                  IntOffset(
+                     (iconX - halfIconPx).roundToInt(),
+                     (iconY - halfIconPx).roundToInt()
+                  )
+               }
+               .size(22.dp),
             contentAlignment = Alignment.Center
          ) {
-            Icon(item.icon, contentDescription = item.label, tint = item.color, modifier = Modifier.size(20.dp))
+            Icon(item.icon, contentDescription = item.label, tint = Color.White, modifier = Modifier.size(18.dp))
          }
       }
 
+      // Centre cancel button
       Box(
          modifier = Modifier
-            .offset { IntOffset((center.x - 4.dp.toPx()).roundToInt(), (center.y - 4.dp.toPx()).roundToInt()) }
-            .size(8.dp)
+            .offset {
+               IntOffset(
+                  (center.x - innerRadiusPx).roundToInt(),
+                  (center.y - innerRadiusPx).roundToInt()
+               )
+            }
+            .size(innerRadiusDp * 2)
             .clip(CircleShape)
             .background(Color.White)
-      )
+            .border(1.5.dp, Color(0xFFDDDDDD), CircleShape),
+         contentAlignment = Alignment.Center
+      ) {
+         Icon(
+            Icons.Default.Close,
+            contentDescription = "Close",
+            tint = Color(0xFF9E9E9E),
+            modifier = Modifier.size(16.dp)
+         )
+      }
    }
 }
 
@@ -1304,7 +1379,6 @@ fun JetpackTopNavbar(
    onTodoClick: () -> Unit,
    onNewsClick: () -> Unit,
    onProfileClick: () -> Unit,
-   onEditClick: () -> Unit,
    onSettingsClick: () -> Unit
 ) {
    var showMoreMenu by remember { mutableStateOf(false) }
@@ -1377,19 +1451,6 @@ fun JetpackTopNavbar(
                DropdownMenuItem(
                   text = {
                      Text(
-                        text = "Edit Room",
-                        fontSize = 12.sp
-                     )
-                  },
-                  onClick = {
-                     showMoreMenu = false
-                     onEditClick()
-                  }
-               )
-
-               DropdownMenuItem(
-                  text = {
-                     Text(
                         text = "Settings",
                         fontSize = 12.sp
                      )
@@ -1430,7 +1491,7 @@ fun JetpackTopNavbar(
             Box(
                modifier = Modifier
                   .size(9.dp)
-                //  .align(Alignment.TopEnd)
+                  //  .align(Alignment.TopEnd)
                   .clip(CircleShape)
                   .background(Color(0xFFE53935))
                   .border(1.5.dp, NavbarSurface, CircleShape)
