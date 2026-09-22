@@ -27,6 +27,8 @@ import com.example.prjmetrix.pages.JournalCover
 import com.example.prjmetrix.pages.JournalEntry
 import com.example.prjmetrix.pages.JournalList
 import com.example.prjmetrix.pages.ProfileScreen
+import com.example.prjmetrix.pages.SurveyScaffold
+import com.example.prjmetrix.pages.WelcomeScreen
 
 //(Easy Tuto, 2024)
 @Composable
@@ -53,8 +55,12 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
     }
 
     //handles the login and logout ui clash
-    LaunchedEffect(uiState.isAuthenticated) {
-        val target = if(uiState.isAuthenticated) "home" else "login"
+    LaunchedEffect(uiState.isAuthenticated,uiState.isNewUser) {
+        val target = when {
+            !uiState.isAuthenticated -> "login"
+            uiState.isNewUser -> "welcome"
+            else -> "home"
+        }
         val current = navController.currentBackStackEntry?.destination?.route
         if (current != target)
         {
@@ -74,10 +80,17 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 
 
     //the starting screen of the app should be the home if not the user goes to login
-    val startDestination =
-    if(uiState.isAuthenticated) "journalcover" else "login"
+//    val startDestination =
+//    if(uiState.isAuthenticated) "journalcover" else "login"
 
-    // Apply the user's theme and accessibility settings to the whole app
+
+    val startDestination = when {
+        !uiState.isAuthenticated -> "login"
+        uiState.isNewUser -> "welcome"
+        else -> "home"
+    }
+
+        // Apply the user's theme and accessibility settings to the whole app
     AppTheme(
         theme = currentSettings.theme,
         fontSize = currentSettings.fontSize,
@@ -101,6 +114,25 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                     onSessionExpired = {authViewModel.signOut() }
                 )
             }
+
+        //Onboarding: welcome intro, then the profile-setup questions
+        composable  ("welcome") {
+            WelcomeScreen ( onGetStarted = { navController.navigate("survey")} )
+        }
+
+        composable ("survey") {
+            SurveyScaffold(
+                //onboarding happens for new uses, so going back signs them out again
+                onNavigateUp = { authViewModel.signOut() },
+                onFinished =  {
+                    //after onboarding the user is taken to their profile page
+                    navController.navigate("profile") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
 
         // Profile
         composable("profile") {

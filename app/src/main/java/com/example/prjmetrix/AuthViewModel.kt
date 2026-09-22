@@ -13,7 +13,8 @@ data class AuthUiState(
     val isLoading: Boolean = false, // for the loading spinner
     val errorMessage: String? = null, //error messages
     val isAuthenticated: Boolean = false, //check if user is authenticated or not
-    val isCheckingAuth: Boolean = true //checks if user has a token to continue in the app home
+    val isCheckingAuth: Boolean = true, //checks if user has a token to continue in the app home
+    val isNewUser: Boolean = false // checks if the user is new
 )
 
 //(Easy Tuto, 2024)
@@ -29,7 +30,7 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     private fun checkAuthStatus() {
         viewModelScope.launch {
             val loggedIn = repository.isLoggedIn()
-            _uiState.update { it.copy(isCheckingAuth = false, isAuthenticated = loggedIn) }
+            _uiState.update { it.copy(isCheckingAuth = false, isAuthenticated = loggedIn, isNewUser = false) }
         }
     }
     //function to sign in takes email and password, error message displays if password field is blank
@@ -42,7 +43,7 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             repository.signIn(email, password) //authenticates the users details
-                .onSuccess { _uiState.update { s -> s.copy(isLoading = false, isAuthenticated = true) } }
+                .onSuccess { _uiState.update { s -> s.copy(isLoading = false, isAuthenticated = true, isNewUser =false) } }
                 .onFailure { e -> _uiState.update { s -> s.copy(isLoading = false, errorMessage = e.message) } }
         }
     }
@@ -63,7 +64,7 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             repository.signUp(email, password)
-                .onSuccess { _uiState.update { s -> s.copy(isLoading = false, isAuthenticated = true) } }
+                .onSuccess { _uiState.update { s -> s.copy(isLoading = false, isAuthenticated = true, isNewUser = true) } }
                 .onFailure { e -> _uiState.update { s -> s.copy(isLoading = false, errorMessage = e.message) } }
         }
     }
@@ -82,7 +83,7 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     fun signOut() {
         viewModelScope.launch {
             repository.signOut() //authentication check goes back to false
-            _uiState.update{it.copy(isAuthenticated = false, errorMessage = null, isLoading = false)}
+            _uiState.update{it.copy(isAuthenticated = false, errorMessage = null, isLoading = false, isNewUser = false)}
         }
     }
 

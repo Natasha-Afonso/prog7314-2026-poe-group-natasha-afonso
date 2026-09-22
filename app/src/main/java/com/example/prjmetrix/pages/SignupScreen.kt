@@ -68,14 +68,14 @@ fun SignupScreen(
     val uiState by authViewModel.uiState.collectAsState()
 
     //when user successfully logs in the user is taken to the onboarding/home
-    LaunchedEffect(uiState.isAuthenticated) {
-        if (uiState.isAuthenticated)
-        {
-            navController.navigate("home") {
-                popUpTo("login") {inclusive = true}
-            }
-        }
-    }
+//    LaunchedEffect(uiState.isAuthenticated) {
+//        if (uiState.isAuthenticated)
+//        {
+//            navController.navigate("home") {
+//                popUpTo("login") {inclusive = true}
+//            }
+//        }
+//    }
 
     Scaffold(
         modifier = modifier,
