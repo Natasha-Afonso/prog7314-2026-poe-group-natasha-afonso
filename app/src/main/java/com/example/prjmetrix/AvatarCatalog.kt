@@ -132,6 +132,8 @@ val mouthOptions = listOf(
         "mouth_9", R.drawable.mouth_9,
         listOf(AvatarLayer(R.drawable.mouth_9, FullCanvas))
     )
+
+
 )
 
 val lipstickOptions = listOf(
@@ -144,8 +146,8 @@ val lipstickOptions = listOf(
 
 // PARTS OF THE AVATAR THAT THE USER CANNOT CHANGE (yet)
 private val clothingLayers = listOf(
-    AvatarLayer(R.drawable.top2),
-    AvatarLayer(R.drawable.bottom2)
+    AvatarLayer(R.drawable.pink_top),
+    AvatarLayer(R.drawable.grey_pants)
 )
 
 private val faceBaseLayers = listOf(
