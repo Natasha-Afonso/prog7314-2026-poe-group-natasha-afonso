@@ -20,7 +20,7 @@ ENV PATH="$PATH:/opt/mssql-tools18/bin"
 USER mssql
 
 # Healthcheck using the updated tools path and -C (trust server certificate)
-HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+HEALTHCHECK --interval=10s --timeout=5s --start-period=90s --retries=5 \
   CMD /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" || exit 1
 
 # Start SQL Server and run the init script

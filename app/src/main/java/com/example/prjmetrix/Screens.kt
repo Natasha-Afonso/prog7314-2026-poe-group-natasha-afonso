@@ -122,7 +122,6 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.LocalTime
-import com.example.prjmetrix.pages.ProfileScreen
 
 
 // DATA MODELS
@@ -216,7 +215,6 @@ fun HabitItemDto.toTodo(linkedToCircle: Boolean) = TodoItem(
 )
 @Composable
 fun HomeScreen(
-   onProfileClick: () -> Unit ={},
    onSettingsClick: () -> Unit ={},
    onSessionExpired: () -> Unit = {}
 ) {
@@ -498,7 +496,7 @@ var isEditMode by remember { mutableStateOf(false) } //switch for edit mode
             onNewsClick = {
                showNewsBoard = !showNewsBoard
             },
-            onProfileClick = onProfileClick,
+            onProfileClick = { },
             onEditClick = {
                isEditMode = true
             },

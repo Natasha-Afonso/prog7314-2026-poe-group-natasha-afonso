@@ -87,7 +87,7 @@ class SurveyViewModel(private val profileApi: ProfileApi) : ViewModel() {
             try {
                 val response = profileApi.saveProfile(
                     ProfileItemDTO(
-                        userName = nickname.trim(),
+                        displayName = nickname.trim(),
                         personality = personality,
                         birthday = birthday?.toString()
                     )
