@@ -53,7 +53,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 
     //handles the login and logout ui clash
     LaunchedEffect(uiState.isAuthenticated) {
-        val target = if(uiState.isAuthenticated) "home" else "login"
+        val target = if(uiState.isAuthenticated) "journalcover" else "login"
         val current = navController.currentBackStackEntry?.destination?.route
         if (current != target)
         {
