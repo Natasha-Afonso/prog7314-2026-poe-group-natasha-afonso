@@ -12,8 +12,9 @@ data class SettingsUiState(
     val errorMessage: String? = null
 )
 
+//(Easy Tuto, 2024)
 class SettingsViewModel(
-    private val api: SettingsApi
+    private val repository: SettingsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -22,129 +23,118 @@ class SettingsViewModel(
 
     // Load settings when the Settings screen opens
     fun loadSettings() {
-
         viewModelScope.launch {
-
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 errorMessage = null
             )
 
-            try {
-
-                val response = api.getSettings()
-
-                if (response.isSuccessful && response.body() != null) {
-
+            repository.getSettings()
+                .onSuccess { settings ->
                     _uiState.value = SettingsUiState(
-                        settings = response.body()!!,
+                        settings = settings,
                         isLoading = false
                     )
-
-                } else {
-
+                }
+                .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = "Could not load settings."
+                        errorMessage = error.message
+                            ?: "Could not load settings."
                     )
                 }
-
-            } catch (e: Exception) {
-
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = e.message
-                )
-            }
         }
     }
 
 
     // Update push notifications
     fun updateNotifications(enabled: Boolean) {
-
         viewModelScope.launch {
 
-            try {
+            // Show the new value immediately
+            _uiState.value = _uiState.value.copy(
+                settings = _uiState.value.settings.copy(
+                    pushNotifications = enabled
+                ),
+                errorMessage = null
+            )
 
-                val response = api.updateNotifications(enabled)
-
-                if (response.isSuccessful && response.body() != null) {
+            repository.updateNotifications(enabled)
+                .onSuccess { settings ->
 
                     _uiState.value = _uiState.value.copy(
-                        settings = response.body()!!,
+                        settings = settings,
                         errorMessage = null
                     )
-
-                } else {
+                }
+                .onFailure { error ->
 
                     _uiState.value = _uiState.value.copy(
-                        errorMessage = "Could not update notifications."
+                        errorMessage = error.message
+                            ?: "Could not update notifications."
                     )
                 }
-
-            } catch (e: Exception) {
-
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
-                )
-            }
         }
     }
 
 
     // Update language
     fun updateLanguage(language: String) {
-
         viewModelScope.launch {
 
-            try {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = null
+            )
 
-                val response = api.updateLanguage(language)
-
-                if (response.isSuccessful && response.body() != null) {
+            repository.updateLanguage(language)
+                .onSuccess { settings ->
 
                     _uiState.value = _uiState.value.copy(
-                        settings = response.body()!!,
+                        settings = settings,
                         errorMessage = null
                     )
                 }
+                .onFailure { error ->
 
-            } catch (e: Exception) {
-
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
-                )
-            }
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message
+                            ?: "Could not update language."
+                    )
+                }
         }
     }
 
 
     // Update theme
     fun updateTheme(theme: String) {
-
         viewModelScope.launch {
 
-            try {
+            _uiState.value = _uiState.value.copy(
+                settings = _uiState.value.settings.copy(
+                    theme = theme
+                ),
 
-                val response = api.updateTheme(theme)
+                errorMessage = null
+            )
 
-                if (response.isSuccessful && response.body() != null) {
+            repository.updateTheme(theme)
+                .onSuccess { settings ->
 
                     _uiState.value = _uiState.value.copy(
-                        settings = response.body()!!,
+                        settings = settings,
                         errorMessage = null
                     )
                 }
+                .onFailure { error ->
 
-            } catch (e: Exception) {
-
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
-                )
-            }
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message
+                            ?: "Could not update theme."
+                    )
+                }
         }
     }
+
 
 
     // Update accessibility settings
@@ -152,34 +142,36 @@ class SettingsViewModel(
         fontSize: String,
         highContrast: Boolean
     ) {
-
         viewModelScope.launch {
 
-            try {
+            _uiState.value = _uiState.value.copy(
+                settings = _uiState.value.settings.copy(
+                    fontSize = fontSize
+                ),
+                errorMessage = null
+            )
 
-                val request = AccessibilitySettingsRequest(
-                    fontSize = fontSize,
-                    highContrast = highContrast
-                )
-
-                val response = api.updateAccessibility(request)
-
-                if (response.isSuccessful && response.body() != null) {
+            repository.updateAccessibility(
+                fontSize = fontSize,
+                highContrast = highContrast
+            )
+                .onSuccess { settings ->
 
                     _uiState.value = _uiState.value.copy(
-                        settings = response.body()!!,
+                        settings = settings,
                         errorMessage = null
                     )
                 }
+                .onFailure { error ->
 
-            } catch (e: Exception) {
-
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
-                )
-            }
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message
+                            ?: "Could not update accessibility settings."
+                    )
+                }
         }
     }
+
 
 
     // Submit a bug report
@@ -187,33 +179,33 @@ class SettingsViewModel(
         title: String,
         description: String
     ) {
-
         viewModelScope.launch {
 
-            try {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = null
+            )
 
-                val request = BugReportRequest(
-                    title = title,
-                    description = description
-                )
+            repository.submitBug(
+                title = title,
+                description = description
+            )
+                .onSuccess {
 
-                val response = api.submitBug(request)
-
-                if (!response.isSuccessful) {
-
+                    // Bug report submitted successfully.
                     _uiState.value = _uiState.value.copy(
-                        errorMessage = "Could not submit bug report."
+                        errorMessage = null
                     )
                 }
+                .onFailure { error ->
 
-            } catch (e: Exception) {
-
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
-                )
-            }
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message
+                            ?: "Could not submit bug report."
+                    )
+                }
         }
     }
+
 
 
     // Submit a rating
@@ -221,32 +213,43 @@ class SettingsViewModel(
         rating: Int,
         comment: String?
     ) {
-
         viewModelScope.launch {
 
-            try {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = null
+            )
 
-                val request = RatingRequest(
-                    rating = rating,
-                    comment = comment
-                )
+            repository.submitRating(
+                rating = rating,
+                comment = comment
+            )
+                .onSuccess {
 
-                val response = api.submitRating(request)
-
-                if (!response.isSuccessful) {
-
+                    // Rating submitted successfully.
                     _uiState.value = _uiState.value.copy(
-                        errorMessage = "Could not submit rating."
+                        errorMessage = null
                     )
                 }
+                .onFailure { error ->
 
-            } catch (e: Exception) {
-
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
-                )
-            }
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message
+                            ?: "Could not submit rating."
+                    )
+                }
         }
     }
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(
+            errorMessage = null
+        )
+    }
 }
+/*References
+*
+* Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
+*
+*
+* */
+
 

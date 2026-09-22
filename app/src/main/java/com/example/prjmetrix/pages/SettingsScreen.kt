@@ -66,13 +66,14 @@ val SettingsBgBlue = Color(0xFFF5F7FA)
 
 
 // This version connects the screen to the ViewModel
+//(Easy Tuto, 2024)
 @Composable
 fun SettingsScreen(
     navController: NavController,
     authViewModel: AuthViewModel,
     settingsViewModel: SettingsViewModel
 ) {
-
+//(Dawe, 2024)
     val uiState by settingsViewModel.uiState.collectAsState()
 
     val snackbarHostState = remember {
@@ -86,7 +87,7 @@ fun SettingsScreen(
         settingsViewModel.loadSettings()
     }
 
-    SettingsScreen(
+    SettingsContent(
         uiState = uiState,
         snackbarHostState = snackbarHostState,
 
@@ -144,6 +145,14 @@ fun SettingsScreen(
 
         onLogOut = {
             authViewModel.signOut()
+            navController.navigate("login")
+            {
+                popUpTo(navController.graph.id)
+                {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
         }
     )
 }
@@ -151,7 +160,7 @@ fun SettingsScreen(
 
 // Stateless Settings screen
 @Composable
-fun SettingsScreen(
+fun SettingsContent(
     uiState: SettingsUiState = SettingsUiState(),
     snackbarHostState: SnackbarHostState = remember {
         SnackbarHostState()
@@ -871,7 +880,7 @@ fun SettingsRow(
 
 
 /*References
-*
+*Dawe, L. 2024.ViewModel Event Publishing in Jetpack Compose Using Flows. [source code]. Available at:<https://medium.com/@luke.dawe/ui-event-handling-in-jetpack-compose-using-flows-for-snackbars-30c3fb163278> [Accessed 19 September 2026]
 * Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
 *
 *
