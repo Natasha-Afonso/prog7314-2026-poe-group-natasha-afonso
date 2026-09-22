@@ -20,6 +20,7 @@ import com.example.prjmetrix.pages.LoginScreen
 import com.example.prjmetrix.pages.SettingsScreen
 import com.example.prjmetrix.pages.SignupScreen
 import com.example.prjmetrix.pages.ThemesScreen
+import com.example.prjmetrix.pages.WardrobeScreen
 
 //(Easy Tuto, 2024)
 @Composable
@@ -92,6 +93,15 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                     onSessionExpired = {authViewModel.signOut() }
                 )
             }
+
+        //Wardrobe
+        composable("wardrobe") {
+            WardrobeScreen (
+                onPlannerClick = {
+                    navController.navigate("planner")
+                }
+            )
+        }
 
         // Settings
         composable("settings") {

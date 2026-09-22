@@ -29,3 +29,22 @@ CREATE TABLE HabitLogs (
     CONSTRAINT UQ_HabitLogs_Habit_Date UNIQUE (HabitId, LogDate)
 );
 GO
+
+CREATE TABLE ClothingItems
+(
+    Id INT PRIMARY KEY IDENTITY(1,1),
+
+    UserId NVARCHAR(128) NOT NULL,
+
+    Name NVARCHAR(100) NOT NULL,
+
+    Category NVARCHAR(50) NOT NULL,
+
+    ImageUrl NVARCHAR(1000) NULL,
+
+    IsWishlist BIT NOT NULL DEFAULT 0,
+
+    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+);
+
+GO

@@ -7,6 +7,7 @@ namespace MetrixAPI.Data
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options): base(options) {}
 
+      //Settings
         public DbSet<UserSettings> UserSettings { get; set; }
       
         public DbSet<BugReport> BugReports { get; set; }
@@ -17,7 +18,9 @@ namespace MetrixAPI.Data
 
         // public DbSet<CalendarEvent> CalendarEvents { get; set; }
         // public DbSet<Outfit> Outfits { get; set; }
-        // public DbSet<ClothingItem> ClothingItems { get; set; }
+        
+        //Wardrobe
+       public DbSet<ClothingItem> ClothingItems { get; set; }
         // public DbSet<WishlistItem> WishlistItems { get; set; }
         // public DbSet<WeeklyMagazine> WeeklyMagazines { get; set; }
 

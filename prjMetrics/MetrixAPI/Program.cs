@@ -1,14 +1,11 @@
 using Firebase.Auth;
 using Firebase.Auth.Providers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MetrixAPI.Data;
 using MetrixAPI.Models;
 using MetrixAPI.Services;
-
-using MetrixAPI.Data;
-using Microsoft.Extensions.Options;
-using Microsoft.EntityFrameworkCore;
 
 
 namespace MetrixAPI
@@ -43,6 +40,7 @@ namespace MetrixAPI
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<IUserIdentityService,UserIdentityService>();
             builder.Services.AddScoped<SettingsService>();
+            builder.Services.AddScoped<ClothingService>();
 
             //configure firebase to map to the correct project id and key declared in appsettings
             var firebaseSettings = builder.Configuration.GetSection("Firebase").Get<FirebaseSettings>()
