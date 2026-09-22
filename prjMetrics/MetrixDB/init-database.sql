@@ -28,7 +28,6 @@ CREATE TABLE HabitLogs (
         REFERENCES Habits(Id) ON DELETE CASCADE,
     CONSTRAINT UQ_HabitLogs_Habit_Date UNIQUE (HabitId, LogDate)
 );
-GO
 
 CREATE TABLE ClothingItems
 (
@@ -45,6 +44,8 @@ CREATE TABLE ClothingItems
     IsWishlist BIT NOT NULL DEFAULT 0,
 
     CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+);
+
 
 CREATE TABLE Journal (
     JournalId INT PRIMARY KEY IDENTITY(1,1),

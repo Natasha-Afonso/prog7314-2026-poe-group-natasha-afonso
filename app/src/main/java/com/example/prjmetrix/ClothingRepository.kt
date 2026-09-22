@@ -1,142 +1,127 @@
 package com.example.prjmetrix
 
-
-
 import android.content.Context
 import android.net.Uri
 
-class ClothingRepository(private val context: Context) {
+class ClothingRepository(
+    private val context: Context
+) {
 
-    private val api =
+    private val clothingApi =
         NetworkRepository.create(
-            context.applicationContext,
+            context,
             ClothingApi::class.java
         )
 
-    private val files =
-        FileRepository(context.applicationContext)
+    private val fileRepository =
+        FileRepository(context)
 
-    suspend fun getClothing(): Result<List<ClothingItem>> =
-        api.getClothing().let { response ->
+    suspend fun getClothing(): Result<List<ClothingItem>> {
+
+        return try {
+
+            val response =
+                clothingApi.getClothing()
 
             if (response.isSuccessful) {
-                Result.success(response.body() ?: emptyList())
+
+                Result.success(
+                    response.body() ?: emptyList()
+                )
+
             } else {
+
                 Result.failure(
                     Exception("Could not load wardrobe.")
                 )
             }
-        }
 
-    suspend fun getWishlist(): Result<List<ClothingItem>> =
-        api.getWishlist().let { response ->
+        } catch (e: Exception) {
 
-            if (response.isSuccessful) {
-                Result.success(response.body() ?: emptyList())
-            } else {
-                Result.failure(
-                    Exception("Could not load wishlist.")
-                )
-            }
+            Result.failure(e)
         }
+    }
 
     suspend fun addClothing(
         name: String,
         category: String,
-        imageUri: Uri?,
-        removeBackground: Boolean
+        imageUri: Uri?
     ): Result<ClothingItem> {
 
-        val imageUrl =
-            if (imageUri != null) {
-                files.uploadImage(
-                    imageUri,
-                    removeBackground
-                ).getOrElse {
-                    return Result.failure(it)
-                }
-            } else {
-                null
-            }
+        return try {
 
-        return api.addClothing(
-            ClothingItem(
+
+            val imageUrl =
+                if (imageUri != null) {
+
+                    fileRepository
+                        .uploadImage(imageUri)
+                        .getOrElse {
+                            return Result.failure(it)
+                        }
+
+                } else {
+                    null
+                }
+
+            val item = ClothingItem(
                 name = name,
                 category = category,
                 imageUrl = imageUrl
             )
-        ).let { response ->
+
+            val response =
+                clothingApi.addClothing(item)
 
             if (response.isSuccessful) {
 
-                response.body()?.let {
-                    Result.success(it)
-                } ?: Result.failure(
-                    Exception("No item returned.")
+                Result.success(
+                    response.body()
+                        ?: throw Exception(
+                            "No clothing item returned."
+                        )
                 )
 
             } else {
 
                 Result.failure(
-                    Exception("Could not add clothing.")
+                    Exception(
+                        "Could not add clothing."
+                    )
                 )
             }
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
         }
     }
 
-    suspend fun addWishlist(
-        name: String,
-        imageUri: Uri?
-    ): Result<ClothingItem> {
+    suspend fun deleteClothing(
+        id: Int
+    ): Result<Unit> {
 
-        val imageUrl =
-            if (imageUri != null) {
-                files.uploadImage(
-                    imageUri,
-                    false
-                ).getOrElse {
-                    return Result.failure(it)
-                }
-            } else {
-                null
-            }
+        return try {
 
-        return api.addWishlist(
-            ClothingItem(
-                name = name,
-                category = "Wishlist",
-                imageUrl = imageUrl,
-                isWishlist = true
-            )
-        ).let { response ->
+            val response =
+                clothingApi.deleteClothing(id)
 
             if (response.isSuccessful) {
 
-                response.body()?.let {
-                    Result.success(it)
-                } ?: Result.failure(
-                    Exception("No item returned.")
-                )
-
-            } else {
-
-                Result.failure(
-                    Exception("Could not add wishlist item.")
-                )
-            }
-        }
-    }
-
-    suspend fun delete(id: Int): Result<Unit> =
-        api.deleteClothing(id).let { response ->
-
-            if (response.isSuccessful) {
                 Result.success(Unit)
+
             } else {
+
                 Result.failure(
-                    Exception("Could not delete item.")
+                    Exception(
+                        "Could not delete clothing."
+                    )
                 )
             }
-        }
-}
 
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+}

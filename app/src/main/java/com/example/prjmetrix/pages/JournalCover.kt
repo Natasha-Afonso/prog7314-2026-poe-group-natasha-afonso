@@ -21,13 +21,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
-
+//(Android Developers, 2026a)
 @Composable
 fun JournalCover(onOpenJournal: () -> Unit) {
     Scaffold(containerColor = Color(0xFFFAF6EC)) { padding ->
@@ -35,7 +36,8 @@ fun JournalCover(onOpenJournal: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentAlignment = Alignment.Center
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             BookCover(onClick = onOpenJournal) //calls the book design that opens to JournalList screen
             Spacer(modifier = Modifier.height(24.dp))
@@ -71,13 +73,15 @@ private fun JournalPrompts() {
     Crossfade(targetState = prompt){i ->
         Text(
             text = journalPrompts[i],
-            color = Color(0xFF2B2B2B),
+            color = Color.Black,
             fontSize = 14.sp, textAlign = TextAlign.Center,
+            fontStyle = FontStyle.Italic,
             modifier = Modifier.padding(horizontal = 24.dp)
         )
     }
 }
 
+//(Android Developers, 2026b)
 @Composable
 private fun BookCover(onClick: () -> Unit) {
     var pressed by remember { mutableStateOf(false) }
@@ -93,7 +97,7 @@ private fun BookCover(onClick: () -> Unit) {
                 indication = null
             ) { onClick() }
     ) {
-        // spine
+        // side of the book
         Box(
             modifier = Modifier
                 .width(14.dp)
@@ -135,6 +139,7 @@ private fun BookCover(onClick: () -> Unit) {
     }
 }
 
+//(Kafri, 2022)
 //customized stitch for book cover
 @Composable
 private fun StitchBorder() {
@@ -153,8 +158,10 @@ private fun StitchBorder() {
 
 /*References
 
-Android Developers, 2026. Jetpack Compose Tutorial. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/develop/ui/compose/tutorial > [Accessed 17 September 2026]
+Android Developers, 2026a. Jetpack Compose Tutorial. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/develop/ui/compose/tutorial > [Accessed 17 September 2026]
+Android Developers, 2026b. Graphics modifiers. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/develop/ui/compose/graphics/draw/modifiers > [Accessed 20 September 2026]
 Geeksforgeeks, 2025. Kotlin list: listof(). (Version 10.0) [Source Code]. Available at: < https://www.geeksforgeeks.org/kotlin/kotlin-list-listof/ > [Accessed 22 September 2026]
+Kafri, 2022. Dasheddivider. (Version 10.0) [Source Code]. Available at: < https://gist.github.com/kafri8889/463b6c904a54a22e412eb11ad152cf98 > [Accessed 20 September 2026]
 Kostadinov, D., 2025. Top 3 Most common animations you can use in your jetpack compose project. (Version 10.0) [Source Code]. Available at: < https://proandroiddev.com/top-3-most-common-animations-you-can-use-in-your-jetpack-compose-project-9bb92f5311a2 > [Accessed 22 September 2026]
 StackOverflow, 2023. How to call a function every 5 seconds in Jetpack Compose. (Version 10.0) [Source Code]. Available at: <https://stackoverflow.com/questions/70081950/how-to-call-a-function-every-5-second-in-jetpack-compose > [Accessed 22 September 2026]
  */

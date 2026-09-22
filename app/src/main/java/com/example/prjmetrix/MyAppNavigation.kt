@@ -1,7 +1,9 @@
 package com.example.prjmetrix
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -10,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,13 +29,17 @@ import com.example.prjmetrix.pages.WardrobeScreen
 import com.example.prjmetrix.pages.JournalCover
 import com.example.prjmetrix.pages.JournalEntry
 import com.example.prjmetrix.pages.JournalList
-
-
+import com.example.prjmetrix.pages.ProfileScreen
+import com.example.prjmetrix.pages.SurveyScaffold
+import com.example.prjmetrix.pages.WelcomeScreen
+import androidx.navigation.compose.currentBackStackEntryAsState
 //(Easy Tuto, 2024)
 @Composable
 fun MyAppNavigation(modifier: Modifier = Modifier) {
 
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
     val context = LocalContext.current
     val authViewModel : AuthViewModel = viewModel(factory = AuthView2(context))
     val uiState by authViewModel.uiState.collectAsState() //getting the state so we user does not have to login everytime they open the app after login
@@ -52,8 +59,12 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
     }
 
     //handles the login and logout ui clash
-    LaunchedEffect(uiState.isAuthenticated) {
-        val target = if(uiState.isAuthenticated) "home" else "login"
+    LaunchedEffect(uiState.isAuthenticated,uiState.isNewUser) {
+        val target = when {
+            !uiState.isAuthenticated -> "login"
+            uiState.isNewUser -> "welcome"
+            else -> "home"
+        }
         val current = navController.currentBackStackEntry?.destination?.route
         if (current != target)
         {
@@ -73,10 +84,17 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 
 
     //the starting screen of the app should be the home if not the user goes to login
-    val startDestination =
-    if(uiState.isAuthenticated) "journalcover" else "login"
+//    val startDestination =
+//    if(uiState.isAuthenticated) "journalcover" else "login"
 
-    // Apply the user's theme and accessibility settings to the whole app
+
+    val startDestination = when {
+        !uiState.isAuthenticated -> "login"
+        uiState.isNewUser -> "welcome"
+        else -> "home"
+    }
+
+        // Apply the user's theme and accessibility settings to the whole app
     AppTheme(
         theme = currentSettings.theme,
         fontSize = currentSettings.fontSize,
@@ -85,8 +103,12 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 
 
 //navigation code for each screen
-    NavHost(navController = navController,
-        startDestination = startDestination) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.fillMaxSize()
+            ) {
         composable("login"){
             LoginScreen(modifier, navController, authViewModel)
         }
@@ -99,6 +121,32 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                     onSessionExpired = {authViewModel.signOut() }
                 )
             }
+
+        //Onboarding: welcome intro, then the profile-setup questions
+        composable  ("welcome") {
+            WelcomeScreen ( onGetStarted = { navController.navigate("survey")} )
+        }
+
+        composable ("survey") {
+            SurveyScaffold(
+                //onboarding happens for new uses, so going back signs them out again
+                onNavigateUp = { authViewModel.signOut() },
+                onFinished =  {
+                    //after onboarding the user is taken to their profile page
+                    navController.navigate("profile") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+
+        // Profile
+        composable("profile") {
+
+            ProfileScreen(
+                profileViewModel)
+        }
 
         //Wardrobe
         composable("wardrobe") {
@@ -175,22 +223,46 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                 onEditEntry = { id -> navController.navigate("journalentry?entryId=$id") }
             )
         }
-        composable(
-            route = "journalentry?entryId={entryId}",
-            arguments = listOf(navArgument("entryId") {
-                type = NavType.IntType
-                defaultValue = -1
-            })
-        ) { backStackEntry ->
-            val idArg = backStackEntry.arguments?.getInt("entryId") ?: -1
-            JournalEntry(
-                entryId = if (idArg == -1) null else idArg,
-                onDone = { navController.popBackStack() }
-            )
-        }
-    }
-    }
-}
+                composable(
+                    route = "journalentry?entryId={entryId}",
+                    arguments = listOf(navArgument("entryId") {
+                        type = NavType.IntType
+                        defaultValue = -1
+                    })
+                ) { backStackEntry ->
+                    val idArg = backStackEntry.arguments?.getInt("entryId") ?: -1
+                    JournalEntry(
+                        entryId = if (idArg == -1) null else idArg,
+                        onDone = { navController.popBackStack() }
+                    )
+                }
+            }
+
+            if (
+                currentRoute == "home" ||
+                currentRoute == "wardrobe" ||
+                currentRoute == "journalcover" ||
+                currentRoute == "profile"
+            ) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 40.dp)
+                ) {
+                    BottomNavigation(
+                        currentRoute = currentRoute,
+                        onNavigate = { route ->
+                            navController.navigate(route) {
+                                popUpTo("home") {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                }
+            }}}}
 
 /*References
 *
