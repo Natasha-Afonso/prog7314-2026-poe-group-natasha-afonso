@@ -41,6 +41,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val context = LocalContext.current
+    val profileViewModel : ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
     val authViewModel : AuthViewModel = viewModel(factory = AuthView2(context))
     val uiState by authViewModel.uiState.collectAsState() //getting the state so we user does not have to login everytime they open the app after login
     val settingsViewModel: SettingsViewModel = viewModel(
