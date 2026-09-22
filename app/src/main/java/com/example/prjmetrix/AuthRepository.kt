@@ -17,6 +17,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
+//(Simplified Coding, 2021)
 class AuthRepository(private val context: Context) {
 
     private val api: AuthApi by lazy {
@@ -72,11 +73,13 @@ class AuthRepository(private val context: Context) {
                 val body = response.body()
                     ?: return Result.failure(Exception("Empty response from the server."))
 
+                //saves the email, user id and tokens to preferences data store Token.kt
                 tokenStore.save(body.uid, body.email, body.idToken, body.refreshToken)
                 Result.success(body)
             } else {
                 Result.failure(Exception(readError(response)))
             }
+            //error messages if errors occur logged
         } catch (e: IOException) {
             android.util.Log.e("AuthRepository", "Network error calling MeTrix API", e)
             Result.failure(Exception("Cannot reach MeTrix. Check your connection and try again."))

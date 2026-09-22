@@ -1,0 +1,148 @@
+package com.example.prjmetrix
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.util.Collections.list
+
+//data class for journal state values
+data class JournalUiState(
+    val entries: List<JournalResponse> = emptyList(),
+    val isLoading: Boolean = false, // for the loading spinner
+    val errorMessage: String? = null, //error messages
+    val isSaving: Boolean = false, //if the entry is being saved
+    val editingEntry: JournalResponse? = null //gets one entry by id to be edited
+)
+
+//(Easy Tuto, 2024)
+class JournalViewModel(private val repository: JournalRepository) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(JournalUiState())
+    val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
+
+    //(Sharma, 2024)
+    fun loadEntries() { //gets a list of all the entries the user made
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            repository.getAll() //displays all the users entries in index list
+                .onSuccess { list ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            entries = list
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update { s ->
+                        s.copy(
+                            isLoading = false,
+                            errorMessage = e.message
+                        )
+                    }
+                }
+        }
+    }
+
+    fun loadEntry(id: Int) { //gets one entry the user made for when editing
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            repository.getById(id)
+                .onSuccess { entry ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            editingEntry = entry
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update { s ->
+                        s.copy(
+                            isLoading = false,
+                            errorMessage = e.message
+                        )
+                    }
+                }
+        }
+    }
+
+    fun updateEntry(id: Int, mood: String, text: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, errorMessage = null) }
+            repository.update(id, mood, text) //calls the update function to update a journal entry
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false
+                        )
+                    }
+                    loadEntries()
+                    onDone()
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            errorMessage = e.message
+                        )
+                    }
+                }
+        }
+    }
+
+    //(Alpasian, 2023)
+    fun createEntry(mood: String, text: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, errorMessage = null) }
+            repository.create(text, mood) //calls create function where users enters their text and mood
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false
+                        )
+                    }
+                    loadEntries()
+                    onDone()
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = e.message
+                        )
+                    }
+                }
+        }
+    }
+
+    fun deleteEntry(id: Int) {
+        viewModelScope.launch {
+            repository.delete(id) //delete an specific entry chosen by user
+                .onSuccess { loadEntries()}
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = e.message
+                        )
+                    }
+                }
+        }
+    }
+
+    //clears the error messages
+    fun clearError() = _uiState.update { it.copy(errorMessage = null) }
+}
+/*References
+*
+* Alpasian, E., 2023. DiaryApp. (Version 10.0) [Source code]. Available at: < https://github.com/erenalpaslan/DiaryApp > [Accessed 19 September 2026]
+* Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
+* Sharma, S., 2024. Mood-Journal. (Version 10.0) [Source code]. Available at: < https://github.com/SakshamSharma2026/Mood-Journal > [Accessed 21 September 2026]
+* Simplified Coding, 2021. #12 Android Login/Signup with MVVM - user Logout [video online] [source code]. Available at: < https://youtu.be/q_5xrPYRoAg?si=gRbHfP1TazLTqbrY > [Accessed 19 September 2026
+*
+*/
