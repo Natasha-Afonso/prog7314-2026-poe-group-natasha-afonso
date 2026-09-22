@@ -146,8 +146,10 @@ val lipstickOptions = listOf(
 
 // PARTS OF THE AVATAR THAT THE USER CANNOT CHANGE (yet)
 private val clothingLayers = listOf(
-    AvatarLayer(R.drawable.pink_top),
+    AvatarLayer(R.drawable.top2),
+ 
     AvatarLayer(R.drawable.grey_pants)
+
 )
 
 private val faceBaseLayers = listOf(
