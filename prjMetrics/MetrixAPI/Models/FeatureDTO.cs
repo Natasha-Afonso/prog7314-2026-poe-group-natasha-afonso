@@ -10,6 +10,7 @@ public record OutfitItemDto(int Id, string Name, string Category, string? ImageU
 public record OutfitDto(int Id, string Name, DateTime CreatedAt, List<OutfitItemDto> Items);
 public record CalendarEventDto(DateOnly Date, string Title, string Type, int? OutfitId, string? OutfitName);
 
+<<<<<<< Updated upstream
 public record WeatherDto(
     string Date,
     double MaxTemperature,
@@ -17,6 +18,8 @@ public record WeatherDto(
     double PrecipitationProbability,
     int WeatherCode
 );
+=======
+>>>>>>> Stashed changes
 
 public record MagazineDto(
     DateOnly WeekStart,

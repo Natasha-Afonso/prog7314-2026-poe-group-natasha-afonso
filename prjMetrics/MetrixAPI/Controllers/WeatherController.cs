@@ -1,8 +1,15 @@
+<<<<<<< Updated upstream
 using System.Text.Json;
 using MetrixAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+=======
+/*using System.Text.Json;
+using MetrixAPI.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+>>>>>>> Stashed changes
 namespace MetrixAPI.Controllers;
 
 [ApiController]
@@ -30,3 +37,7 @@ public class WeatherController : ControllerBase
             daily.GetProperty("weather_code")[0].GetInt32()));
     }
 }
+<<<<<<< Updated upstream
+=======
+*/
+>>>>>>> Stashed changes

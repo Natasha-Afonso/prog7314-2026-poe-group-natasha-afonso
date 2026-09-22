@@ -6,15 +6,17 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
+import kotlin.jvm.java
 
 class FileRepository(private val context: Context) {
     private val api = NetworkRepository.create(
-        context,
+        context.applicationContext,
         FileApi::class.java
     )
 
     suspend fun uploadImage(
-        uri: Uri
+        uri: Uri,
+        removeBackground: Boolean = false
     ): Result<String> {
 
         return try {
@@ -27,7 +29,7 @@ class FileRepository(private val context: Context) {
 
             val tempFile = File(
                 context.cacheDir,
-                "upload_image.jpg"
+                "upload_image_${System.currentTimeMillis()}.jpg"
             )
 
             inputStream.use { input ->
@@ -48,7 +50,7 @@ class FileRepository(private val context: Context) {
                     requestFile
                 )
 
-            val response = api.uploadImage(body)
+            val response = api.uploadImage(file = body,removeBackground = removeBackground)
 
             tempFile.delete()
 
@@ -70,9 +72,8 @@ class FileRepository(private val context: Context) {
 
             } else {
 
-                Result.failure(
-                    Exception("Image upload failed.")
-                )
+                val errorMessage = response.errorBody()?.string()?: "Image upload failed (${response.code()})."
+                Result.failure(Exception(errorMessage))
             }
 
         } catch (e: Exception) {
