@@ -29,7 +29,9 @@ import com.example.prjmetrix.JournalViewModel
 import com.example.prjmetrix.JournalView2
 import com.example.prjmetrix.journalMoods
 
+//(Singh, 2023)
 @OptIn(ExperimentalMaterial3Api::class)
+//(Android Developers, 2026a)
 @Composable
 fun JournalEntry(
     entryId: Int?,
@@ -53,6 +55,7 @@ fun JournalEntry(
     var selectedMood by rememberSaveable(existing) { mutableStateOf(existing?.mood) }
     var text by rememberSaveable(existing) { mutableStateOf(existing?.text ?: "") }
 
+    //(Alpasian, 2023)
     Scaffold(
         containerColor = Color(0xFFFAF6EC),
         topBar = {
@@ -105,6 +108,7 @@ fun JournalEntry(
                     MoodPrompt(onMoodChosen = { selectedMood = it })
                 }
 
+                //(Android Developers, 2026b)
                 // top of journal displays the users chosen mood
                 AnimatedVisibility(
                     visible = selectedMood != null,
@@ -143,6 +147,7 @@ fun JournalEntry(
     }
 }
 
+//(Alpasian, 2023)
 @Composable
 private fun MoodPrompt(onMoodChosen: (String) -> Unit) {
     Column(
@@ -185,7 +190,7 @@ private fun MoodPrompt(onMoodChosen: (String) -> Unit) {
         }
     }
 }
-
+//(Alpasian, 2023)
 @Composable
 private fun MoodBadge(emoji: String, onChangeMood: () -> Unit) {
     Row(
@@ -201,3 +206,13 @@ private fun MoodBadge(emoji: String, onChangeMood: () -> Unit) {
         Text("Change mood", style = MaterialTheme.typography.labelSmall, color = Color(0xFF5B2A2A))
     }
 }
+/*References
+
+* Alpasian, E., 2023. DiaryApp. (Version 10.0) [Source code]. Available at: < https://github.com/erenalpaslan/DiaryApp > [Accessed 19 September 2026]
+* Android Developers, 2026a. Jetpack Compose Tutorial. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/develop/ui/compose/tutorial > [Accessed 17 September 2026]
+* Android Developers, 2026b. Animation modifier and composable. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/develop/ui/compose/animation/composables-modifiers > [Accessed 20 September 2026]
+* Jovanovic, S., 2024. Diary App. (Version 10.0) [Source Code]. Available at: < https://github.com/stevdza-san/DiaryApp/tree/master > [Accessed 20 September 2026]
+* Krishna, M., 2025. Personal Diary App. (Version 10.0) [Source Code]. Available at: < https://github.com/Murali-KrishnaM/PersonalDiaryApp/blob/main/app/src/main/java/com/example/diaryapp/AddEntryActivity.kt > [Accessed 20 September 2026]
+* Sharma, S., 2024. Mood-Journal. (Version 10.0) [Source code]. Available at: < https://github.com/SakshamSharma2026/Mood-Journal > [Accessed 21 September 2026]
+* Singh, G., 2023, Material Design 3 for compose gets new components and features. (Version 10.0) [Source Code]. Available at: < https://m3.material.io/blog/material-3-compose-1-1 > [Accessed 20 September 2026]
+ */
