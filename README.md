@@ -32,21 +32,6 @@ Our app entails of a personal companion where users can express themselves by cu
 - User is asked reflectional journal prompts when opening their digital journal book
 <br>
 
-### Wardrobe 👕👖👗👚
-- The user can customize their wardrobe background
-- Users can upload image of their clothes to add it to their wardrobe collection
-- Users can add certain clothes they have an image of in a wishlist
-<br>
-
-### Shop 🏪🪙
-- User can purchase items using their earned gold coins
-- User can see what they have purchased from their cart
-<br>
-
-### Magazine 📖
-- The user receives a weekly magazine fixture that summarizes their in-app activities
-<br>
-
 ### Habits and Goals 🎯🪙
 - Users can create habits/goals and categories
 - All accomplished goals will allow them to earn gold coins
@@ -58,9 +43,6 @@ Our app entails of a personal companion where users can express themselves by cu
 - Activities like water intake, cardio(step count) and hygiene (brushing their teeth)
 <br>
 
-### In-App Calendar 📅
-- User can create an outfit and optionally schedule the outfit to wear on that specific day.  
-- Calendar is going to save the users birthday and national holidays.
 <br>
 
 ### Profile Customization ©️
