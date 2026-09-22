@@ -89,7 +89,6 @@ fun PlannerScreen(
             ) {
 
                 Text(
-<<<<<<< Updated upstream
                     text = "‹",
                     fontSize = 38.sp,
                     color = darkText,
@@ -98,14 +97,6 @@ fun PlannerScreen(
                             onBackClick()
                         }
                         .padding(end = 8.dp)
-=======
-                    text =
-                        "${
-                            month.month.name.lowercase().replaceFirstChar { it.uppercase() }
-                        } ${month.year}",
-                    style =
-                        MaterialTheme.typography.titleLarge
->>>>>>> Stashed changes
                 )
 
                 Text(

@@ -449,7 +449,6 @@ private fun MagazineAccessoryCard(
 // Journal
 
 @Composable
-<<<<<<< Updated upstream
 private fun MagazineJournalRow(
     title: String,
     value: String
@@ -471,21 +470,6 @@ private fun MagazineJournalRow(
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             color = Color.White
-=======
-private fun StatCard(label: String, value: String) {
-    Card(
-        Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    ) {
-        Row(
-            Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(label, Modifier.weight(1f)); Text(
-            value,
-            style = MaterialTheme.typography.titleLarge
->>>>>>> Stashed changes
         )
     }
 }
