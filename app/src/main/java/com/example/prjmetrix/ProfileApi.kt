@@ -5,20 +5,16 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PUT
 
-data class ProfileDto(
-    val displayName: String = "",
-    val personality: String = "",
-    val birthday: String? = null,          // "2003-09-15"
-    val bodyKey: String = "base_body_f",
-    val hairKey: String = "hair_1",
-    val eyesKey: String = "eye1c",
-    val lipsKey: String = "lipstick6_grin"
-)
 
+
+// Retrofit turns this interface into real HTTP calls
 interface ProfileApi {
-    @GET("api/Profile")
-    suspend fun getProfile(): Response<ProfileDto>
 
+    // if 200 that means profile found, 404 means this user has no saved profile yet
+    @GET("api/Profile")
+    suspend fun getProfile(): Response<ProfileItemDTO>
+
+    // creates the profile the first time, updates it afterwards
     @PUT("api/Profile")
-    suspend fun saveProfile(@Body body: ProfileDto): Response<ProfileDto>
+    suspend fun saveProfile(@Body body: ProfileItemDTO): Response<ProfileItemDTO>
 }
