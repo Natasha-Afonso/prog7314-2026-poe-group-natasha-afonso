@@ -41,6 +41,8 @@ namespace MetrixAPI
             builder.Services.AddScoped<IUserIdentityService,UserIdentityService>();
             builder.Services.AddScoped<SettingsService>();
             builder.Services.AddScoped<ClothingService>();
+            builder.Services.AddHttpClient();
+            builder.Services.AddHttpClient<IRemoveBackgroundService,RemoveBackgroundService>();
 
             //configure firebase to map to the correct project id and key declared in appsettings
             var firebaseSettings = builder.Configuration.GetSection("Firebase").Get<FirebaseSettings>()

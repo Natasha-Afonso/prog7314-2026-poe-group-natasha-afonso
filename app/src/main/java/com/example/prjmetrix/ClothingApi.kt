@@ -7,14 +7,7 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 
-data class ClothingItem(
-    val id: Int = 0,
-    val userId: String = "",
-    val name: String = "",
-    val category: String = "",
-    val imageUrl: String? = null,
-    val isWishlist: Boolean = false
-)
+
 
 interface ClothingApi {
     @GET("api/clothing")
