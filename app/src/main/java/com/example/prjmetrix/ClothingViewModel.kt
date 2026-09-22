@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 
 data class ClothingUiState(
     val clothing: List<ClothingItem> = emptyList(),
+    val wishlist: List<ClothingItem> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
@@ -17,114 +18,116 @@ class ClothingViewModel(
     private val repository: ClothingRepository
 ) : ViewModel() {
 
-    private val _uiState =
-        MutableStateFlow(ClothingUiState())
+    private val _uiState = MutableStateFlow(ClothingUiState())
+    val uiState: StateFlow<ClothingUiState> = _uiState
 
-    val uiState: StateFlow<ClothingUiState> =
-        _uiState
+    fun load() = viewModelScope.launch {
 
-    fun loadClothing() {
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            errorMessage = null
+        )
 
-        viewModelScope.launch {
+        val clothing = repository.getClothing()
+        val wishlist = repository.getWishlist()
 
-            _uiState.value =
-                _uiState.value.copy(
-                    isLoading = true,
-                    errorMessage = null
-                )
+        if (clothing.isSuccess && wishlist.isSuccess) {
 
-            repository.getClothing()
+            _uiState.value = ClothingUiState(
+                clothing = clothing.getOrNull() ?: emptyList(),
+                wishlist = wishlist.getOrNull() ?: emptyList(),
+                isLoading = false
+            )
 
-                .onSuccess { clothing ->
+        } else {
 
-                    _uiState.value =
-                        ClothingUiState(
-                            clothing = clothing,
-                            isLoading = false
-                        )
-                }
-
-                .onFailure { error ->
-
-                    _uiState.value =
-                        _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage =
-                                error.message
-                                    ?: "Could not load wardrobe."
-                        )
-                }
+            _uiState.value = ClothingUiState(
+                clothing = clothing.getOrNull() ?: emptyList(),
+                wishlist = wishlist.getOrNull() ?: emptyList(),
+                isLoading = false,
+                errorMessage =
+                    clothing.exceptionOrNull()?.message
+                        ?: wishlist.exceptionOrNull()?.message
+            )
         }
     }
 
     fun addClothing(
         name: String,
         category: String,
-        imageUri: Uri?
-    ) {
+        uri: Uri?,
+        removeBackground: Boolean
+    ) = viewModelScope.launch {
 
-        viewModelScope.launch {
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            errorMessage = null
+        )
 
-            _uiState.value =
-                _uiState.value.copy(
-                    isLoading = true,
-                    errorMessage = null
-                )
+        val result = repository.addClothing(
+            name = name,
+            category = category,
+            imageUri = uri,
+            removeBackground = removeBackground
+        )
 
-            repository.addClothing(
-                name,
-                category,
-                imageUri
+        if (result.isSuccess) {
+            load()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                errorMessage = result.exceptionOrNull()?.message
             )
-
-                .onSuccess {
-
-                    loadClothing()
-                }
-
-                .onFailure { error ->
-
-                    _uiState.value =
-                        _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage =
-                                error.message
-                                    ?: "Could not add clothing."
-                        )
-                }
         }
     }
 
-    fun deleteClothing(
-        id: Int
-    ) {
+    fun addWishlist(
+        name: String,
+        uri: Uri?
+    ) = viewModelScope.launch {
 
-        viewModelScope.launch {
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            errorMessage = null
+        )
 
-            repository.deleteClothing(id)
+        val result = repository.addWishlist(
+            name = name,
+            imageUri = uri
+        )
 
-                .onSuccess {
+        if (result.isSuccess) {
+            load()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                errorMessage = result.exceptionOrNull()?.message
+            )
+        }
+    }
 
-                    loadClothing()
-                }
+    fun delete(id: Int) = viewModelScope.launch {
 
-                .onFailure { error ->
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            errorMessage = null
+        )
 
-                    _uiState.value =
-                        _uiState.value.copy(
-                            errorMessage =
-                                error.message
-                                    ?: "Could not delete clothing."
-                        )
-                }
+        val result = repository.delete(id)
+
+        if (result.isSuccess) {
+            load()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                errorMessage = result.exceptionOrNull()?.message
+            )
         }
     }
 
     fun clearError() {
-
-        _uiState.value =
-            _uiState.value.copy(
-                errorMessage = null
-            )
+        _uiState.value = _uiState.value.copy(
+            errorMessage = null
+        )
     }
 }
