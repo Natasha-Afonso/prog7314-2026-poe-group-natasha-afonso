@@ -11,9 +11,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.prjmetrix.pages.AccessibilityScreen
 import com.example.prjmetrix.pages.LanguageScreen
 import com.example.prjmetrix.pages.LoginScreen
@@ -21,6 +23,10 @@ import com.example.prjmetrix.pages.SettingsScreen
 import com.example.prjmetrix.pages.SignupScreen
 import com.example.prjmetrix.pages.ThemesScreen
 import com.example.prjmetrix.pages.WardrobeScreen
+import com.example.prjmetrix.pages.JournalCover
+import com.example.prjmetrix.pages.JournalEntry
+import com.example.prjmetrix.pages.JournalList
+
 
 //(Easy Tuto, 2024)
 @Composable
@@ -68,7 +74,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 
     //the starting screen of the app should be the home if not the user goes to login
     val startDestination =
-    if(uiState.isAuthenticated) "home" else "login"
+    if(uiState.isAuthenticated) "journalcover" else "login"
 
     // Apply the user's theme and accessibility settings to the whole app
     AppTheme(
@@ -157,6 +163,29 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                         highContrast = newContrast
                     )
                 }
+            )
+        }
+        composable("journalcover") {
+            JournalCover(onOpenJournal = { navController.navigate("journallist") })
+        }
+        composable("journallist") {
+            JournalList(
+                onBack = { navController.popBackStack() },
+                onWriteEntry = { navController.navigate("journalentry") },
+                onEditEntry = { id -> navController.navigate("journalentry?entryId=$id") }
+            )
+        }
+        composable(
+            route = "journalentry?entryId={entryId}",
+            arguments = listOf(navArgument("entryId") {
+                type = NavType.IntType
+                defaultValue = -1
+            })
+        ) { backStackEntry ->
+            val idArg = backStackEntry.arguments?.getInt("entryId") ?: -1
+            JournalEntry(
+                entryId = if (idArg == -1) null else idArg,
+                onDone = { navController.popBackStack() }
             )
         }
     }

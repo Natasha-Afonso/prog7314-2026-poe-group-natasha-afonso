@@ -45,6 +45,35 @@ CREATE TABLE ClothingItems
     IsWishlist BIT NOT NULL DEFAULT 0,
 
     CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+
+CREATE TABLE Journal (
+    JournalId INT PRIMARY KEY IDENTITY(1,1),
+    UserId NVARCHAR(128) NOT NULL,
+    Mood NVARCHAR(MAX) NOT NULL,
+    Text NVARCHAR(MAX) NOT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME DEFAULT GETUTCDATE()
+);
+
+
+
+CREATE TABLE Profiles (
+    -- Firebase uid (one profile per user)
+    UserId       NVARCHAR(128) PRIMARY KEY,               
+    UserName  NVARCHAR(50)  NOT NULL,        
+    -- enum name from the app, e.g. "CURIOUS"         
+    Personality  NVARCHAR(50)  NOT NULL DEFAULT '',       
+    Birthday     DATE          NULL,         
+     -- enum name from the app, e.g. "ORGANISED"           
+    Aspiration   NVARCHAR(50)  NOT NULL DEFAULT '',      
+    -- avatar choices: names of options, the app maps them to drawables
+    BodyRef      NVARCHAR(50)  NOT NULL DEFAULT 'base_body_f',
+    HairRef      NVARCHAR(50)  NOT NULL DEFAULT 'hair_1',
+    ExtensionRef NVARCHAR(50)  NOT NULL DEFAULT 'extention_hair',
+    EyeColor     NVARCHAR(9)   NOT NULL DEFAULT '#240C0C', -- #RRGGBB, iris colour
+    MouthRef     NVARCHAR(50)  NOT NULL DEFAULT 'grin_mouth',
+    LipstickRef  NVARCHAR(50)  NOT NULL DEFAULT 'lipstick6_grin',
+    CreatedAt    DATETIME      NOT NULL DEFAULT GETUTCDATE()
 );
 
 GO

@@ -24,6 +24,8 @@ firebaseDatabase = "22.0.2"
 navigationCompose = "2.10.1"
 gson = "2.13.2"
 foundationVersion = "1.12.1"
+uiText = "1.12.1"
+animation = "1.12.1"
 
 
 [libraries]
@@ -58,6 +60,8 @@ gson = { module = "com.google.code.gson:gson", version.ref = "gson"}
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
 kotlin-parcelize-runtime = { group = "org.jetbrains.kotlin", name = "kotlin-parcelize-runtime", version.ref = "kotlin" }
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundationVersion" }
+androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
+androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "animation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

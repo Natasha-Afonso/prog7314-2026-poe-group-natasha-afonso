@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace MetrixAPI.Models
-{
+{//(Rafique, 2025)
     public class Journal
     {
         [Key]
@@ -18,8 +18,13 @@ namespace MetrixAPI.Models
 
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; set; } //updates the time when user updates a diary entry
+        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow; //updates the time when user updates a diary entry
 
 
     }
 }
+
+/*References
+ * Rafique, H., 2025. EmployeeAPI-CRUD. (Version 10.0) [source code]. Available at: < https://github.com/GitHamziee/EmployeeAPI-CRUD/tree/main/Models > [Accessed 19 September 2026]
+ *
+*/

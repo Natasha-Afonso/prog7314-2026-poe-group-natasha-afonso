@@ -9,13 +9,14 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
+//(Simplified Coding, 2021)
 //Network Repository is an object that gets called for the base url and retrofit builder
 object NetworkRepository {
 
     //The actual URL is http://localhost:5161 - use this if you are running through your android phone
     //if that fails then you need to use the IP address of your laptop eg: http://192.168.x.x:5161
     //if you are running on emulator then use this URL: http://x.x.x.x:5161 - x here represents whats in the network_security_config
-    private const val BASE_URL = "http://192.168.101.104:5161" //5161 is from C# backend
+    private const val BASE_URL = "http://192.168.0.103:8080" //5161 is from C# backend
 
     fun <T> create(context: Context, service: Class<T>): T{ //generic function type that takes any object
 
@@ -57,3 +58,10 @@ object NetworkRepository {
             .create(service) //calls the functions endpoint routes in the interface
     }
 }
+
+/*References
+*
+* Burak, 2022. JWT Authentication and Refresh Token in Android with Retrofit Interceptor & Authenticator. (Version 10.0) [source code]. Available at: < https://proandroiddev.com/jwt-authentication-and-refresh-token-in-android-with-retrofit-interceptor-authenticator-da021f7f7534 > [Accessed 19 September 2026]
+* Simplified Coding, 2021. #12 Android Login/Signup with MVVM - user Logout [video online] [source code]. Available at: < https://youtu.be/q_5xrPYRoAg?si=gRbHfP1TazLTqbrY > [Accessed 19 September 2026
+* StackOverflow, 2023. How to add http logging interceptor along with another interceptor in android with kotlin. (Version 10.0) [source code]. Available at: < https://stackoverflow.com/questions/67239799/how-to-add-http-logging-interceptor-along-with-another-interceptor-in-android-wi > [Accessed 19 September 2026]
+* */
