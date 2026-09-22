@@ -10,6 +10,7 @@ data class ImageUploadResponse(
     val message: String,
     val imageUrl: String
 )
+
 interface FileApi {
     @Multipart
     @POST("api/File/upload-image")
