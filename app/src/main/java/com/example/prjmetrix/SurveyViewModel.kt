@@ -108,7 +108,7 @@ class SurveyViewModel(private val profileApi: ProfileApi) : ViewModel() {
     }
 }
 
-// Same pattern as your AuthView2 factory
+
 class SurveyViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
