@@ -17,7 +17,7 @@ class ClothingViewFact(
         ) {
 
             return ClothingViewModel(
-                ClothingRepository(context.applicationContext)
+                ClothingRepository(context)
             ) as T
         }
 

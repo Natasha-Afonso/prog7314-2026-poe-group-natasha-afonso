@@ -275,7 +275,7 @@ private fun ProfileInfoCard(profile: ProfileState, modifier: Modifier = Modifier
                         contentScale = ContentScale.Crop
                     )
                     Text(
-                        text = profile.userName.uppercase(),
+                        text = profile.displayName.uppercase(),
                         modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 4.dp),
                         fontFamily = slabFont,
                         fontWeight = FontWeight.ExtraBold,
