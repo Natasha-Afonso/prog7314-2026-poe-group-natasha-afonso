@@ -254,12 +254,35 @@ fun WardrobeScreen(
                 showAddDialog = false
             },
 
+<<<<<<< Updated upstream
             onAdd = { name, category, imageUri ->
+=======
+            onAddClothing = { name,
+                              category,
+                              uri,
+                              removeBackground ->
+>>>>>>> Stashed changes
 
                 clothingViewModel.addClothing(
                     name = name,
                     category = category,
+<<<<<<< Updated upstream
                     imageUri = imageUri
+=======
+                    uri = uri,
+                    removeBackground = removeBackground
+                )
+
+                showAddDialog = false
+            },
+
+            onAddWishlist = { name,
+                              uri ->
+
+                vm.addWishlist(
+                    name = name,
+                    uri = uri
+>>>>>>> Stashed changes
                 )
 
                 showAddDialog = false

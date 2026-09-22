@@ -2,12 +2,12 @@ using MetrixAPI.Models;
 using MetrixAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
 namespace MetrixAPI.Controllers
 {
     [ApiController]
     [Route("api/clothing")]
     [Authorize]
+    
     public class ClothingController : ControllerBase
     {
         private readonly ClothingService _clothingService;
