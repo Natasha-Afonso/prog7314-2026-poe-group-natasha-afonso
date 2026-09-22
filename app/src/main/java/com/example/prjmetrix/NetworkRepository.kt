@@ -17,7 +17,7 @@ object NetworkRepository {
     //if that fails then you need to use the IP address of your laptop eg: http://192.168.x.x:5161
     //if you are running on emulator then use this URL: http://x.x.x.x:5161 - x here represents whats in the network_security_config
     //8080- docker url
-    private const val BASE_URL = "http://192.168.0.103:8080" //5161 is from C# backend
+    private const val BASE_URL = "http://192.168.0.183:8080" //5161 is from C# backend
 
     fun <T> create(context: Context, service: Class<T>): T{ //generic function type that takes any object
 
