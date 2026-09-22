@@ -14,7 +14,8 @@ data class JournalUiState(
     val entries: List<JournalResponse> = emptyList(),
     val isLoading: Boolean = false, // for the loading spinner
     val errorMessage: String? = null, //error messages
-    val isSaving: Boolean = false //if the entry is being saved
+    val isSaving: Boolean = false, //if the entry is being saved
+    val editingEntry: JournalResponse? = null //gets one entry by id to be edited
 )
 
 //(Easy Tuto, 2024)
@@ -24,7 +25,7 @@ class JournalViewModel(private val repository: JournalRepository) : ViewModel() 
     val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
 
     //(Sharma, 2024)
-    fun loadEntries() {
+    fun loadEntries() { //gets a list of all the entries the user made
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             repository.getAll() //displays all the users entries in index list
@@ -33,6 +34,29 @@ class JournalViewModel(private val repository: JournalRepository) : ViewModel() 
                         it.copy(
                             isLoading = false,
                             entries = list
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update { s ->
+                        s.copy(
+                            isLoading = false,
+                            errorMessage = e.message
+                        )
+                    }
+                }
+        }
+    }
+
+    fun loadEntry(id: Int) { //gets one entry the user made for when editing
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            repository.getById(id)
+                .onSuccess { entry ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            editingEntry = entry
                         )
                     }
                 }

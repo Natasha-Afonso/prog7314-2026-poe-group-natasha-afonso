@@ -39,10 +39,17 @@ fun JournalEntry(
     val viewModel: JournalViewModel = viewModel(factory = JournalView2(context))
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val existing = remember(entryId, state.entries) {
-        entryId?.let { id -> state.entries.firstOrNull { it.journalId == id } }
-    }
+//    val existing = remember(entryId, state.entries) {
+//        entryId?.let { id -> state.entries.firstOrNull { it.journalId == id } }
+//    }
 
+    LaunchedEffect(entryId){
+        if(entryId != null){
+            viewModel.loadEntry(entryId)
+        }
+    }
+    val existing = state.editingEntry
+    val getEntry = entryId != null && existing == null
     var selectedMood by rememberSaveable(existing) { mutableStateOf(existing?.mood) }
     var text by rememberSaveable(existing) { mutableStateOf(existing?.text ?: "") }
 
@@ -83,42 +90,48 @@ fun JournalEntry(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
 
-            // Step 1: mood not chosen yet — full prompt
-            AnimatedVisibility(
-                visible = selectedMood == null,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                MoodPrompt(onMoodChosen = { selectedMood = it })
+            //gets the entry the user wants to update to load it with existing text and mood
+            if(getEntry){
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center),
+                    color = Color(0xFF5B2A2A))
             }
+            else {
+                // user picks the mood
+                AnimatedVisibility(
+                    visible = selectedMood == null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    MoodPrompt(onMoodChosen = { selectedMood = it })
+                }
 
-            // Step 2: mood chosen — editor, with a small badge to change mood
-            AnimatedVisibility(
-                visible = selectedMood != null,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    MoodBadge(
-                        emoji = selectedMood ?: "",
-                        onChangeMood = { selectedMood = null }
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = { text = it },
-                        modifier = Modifier.fillMaxSize(),
-                        placeholder = { Text("Write what's on your mind…") },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF5B2A2A),
-                            unfocusedBorderColor = Color(0xFF5B2A2A).copy(alpha = 0.4f)
+                // top of journal displays the users chosen mood
+                AnimatedVisibility(
+                    visible = selectedMood != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                        MoodBadge(
+                            emoji = selectedMood ?: "",
+                            onChangeMood = { selectedMood = null }
                         )
-                    )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = text,
+                            onValueChange = { text = it },
+                            modifier = Modifier.fillMaxSize(),
+                            placeholder = { Text("Write what's on your mind…") },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF5B2A2A),
+                                unfocusedBorderColor = Color(0xFF5B2A2A).copy(alpha = 0.4f)
+                            )
+                        )
+                    }
                 }
             }
-
             state.errorMessage?.let { message ->
                 Text(
                     text = message,

@@ -28,12 +28,18 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeParseException
 
 private fun formatJournalDate(iso: String): String {
     return try {
-        val instant = Instant.parse(iso)
+        val instant = try { Instant.parse(iso)}
+        catch(e: DateTimeParseException) {
+            LocalDateTime.parse(iso).toInstant(ZoneOffset.UTC)
+        }
         val formatter = DateTimeFormatter
-            .ofPattern("EEEE, d MMM yyyy", Locale.getDefault())
+            .ofPattern("yyyy-MM-dd  hh:mma", Locale.getDefault())
             .withZone(ZoneId.systemDefault())
         formatter.format(instant)
     } catch (e: Exception) {
