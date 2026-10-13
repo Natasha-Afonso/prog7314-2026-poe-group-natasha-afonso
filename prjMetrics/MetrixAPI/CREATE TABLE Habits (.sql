@@ -1,14 +1,3 @@
- USE master;
-GO
--- Create the MetrixDB database only if it does not already exist
-IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'MetrixDB')
-BEGIN
-    CREATE DATABASE MetrixDB;
-END
-GO
--- Switch to the Metrix database
-USE MetrixDB;
-GO
 CREATE TABLE Habits (
     Id INT PRIMARY KEY IDENTITY(1,1),
     UserId NVARCHAR(128) NOT NULL,
