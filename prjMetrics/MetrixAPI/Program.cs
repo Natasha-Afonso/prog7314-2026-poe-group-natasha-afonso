@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using MetrixAPI.Data;
 using MetrixAPI.Models;
 using MetrixAPI.Services;
+using Azure.Storage.Blobs;
 
 
 namespace MetrixAPI
@@ -24,14 +25,24 @@ namespace MetrixAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+    var connectionString = Environment.GetEnvironmentVariable("SQL_CONNECTION_STRING")
+        ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
           // Add services to the container.
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-{
-    var connectionString = Environment.GetEnvironmentVariable("SQL_CONNECTION_STRING")
-        ?? builder.Configuration.GetConnectionString("SQL_CONNECTION_STRING");
+            options.UseSqlServer(connectionString));
 
-    options.UseSqlServer(connectionString);
-});
+            // Configure Azure Blob Storage
+            builder.Services.AddSingleton(sp =>
+            {
+                var config = sp.GetRequiredService<IConfiguration>();
+                return new BlobServiceClient(config.GetConnectionString("AzureBlobStorage"));
+            });
+
+            //prints the server and database name on startup
+            var csb = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+            Console.WriteLine($"[DB] Using {csb.DataSource} / {csb.InitialCatalog}");
+
 
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
