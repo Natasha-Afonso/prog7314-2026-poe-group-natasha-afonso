@@ -1253,7 +1253,7 @@ fun AvatarPieMenu(
    onDismiss: () -> Unit
 ) {
    val density = LocalDensity.current
-   val outerRadiusDp = 108.dp
+   val outerRadiusDp = 18.dp
    val innerRadiusDp = 32.dp
    val outerRadiusPx = with(density) { outerRadiusDp.toPx() }
    val innerRadiusPx = with(density) { innerRadiusDp.toPx() }
