@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import com.example.prjmetrix.ui.theme.*
 
 @Composable
 //Pawar, 2026
@@ -83,9 +84,37 @@ fun AppTheme(
 
 
     val normalColors = if (isDark) {
-        darkColorScheme()
+        darkColorScheme(
+            primary = Color(0xFFB9D7E8),
+            onPrimary = Color(0xFF1F3A4D),
+            primaryContainer = Color(0xFF7A3E3E),
+            onPrimaryContainer = Color(0xFFFAF6EC),
+            secondary = Color(0xFFF3E4A8),
+            onSecondary = Color(0xFF3A2A2A),
+            secondaryContainer = Color(0xFF5B4A1F),
+            onSecondaryContainer = Color(0xFFF3E4A8),
+            tertiary = Color(0xFFD9A0A0),
+            background = Color(0xFF1F1A1A),
+            onBackground = Color(0xFFFAF6EC),
+            surface = Color(0xFF1F1A1A),
+            onSurface = Color(0xFFFAF6EC)
+        )
     } else {
-        lightColorScheme()
+        lightColorScheme(
+            primary = Color(0xFF7A3E3E),
+            onPrimary = Color.White,
+            primaryContainer = Color(0xFFB9D7E8),
+            onPrimaryContainer = Color(0xFF5B2A2A),
+            secondary = Color(0xFFD9C173),
+            onSecondary = Color(0xFF3A2A2A),
+            secondaryContainer = Color(0xFFF3E4A8),
+            onSecondaryContainer = Color(0xFF3A2A2A),
+            tertiary = Color(0xFF5B2A2A),
+            background = Color(0xFFFAF6EC),
+            onBackground = Color(0xFF3A2A2A),
+            surface = Color(0xFFFAF6EC),
+            onSurface = Color(0xFF3A2A2A)
+        )
     }
 
     val contrastColors = if (isDark) {

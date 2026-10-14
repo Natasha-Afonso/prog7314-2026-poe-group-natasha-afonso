@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -100,9 +102,13 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
         theme = currentSettings.theme,
         fontSize = currentSettings.fontSize,
         highContrast = currentSettings.highContrast
-    ) {
+    )
 
-
+        {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ){
 //navigation code for each screen
         Box(modifier = Modifier.fillMaxSize()) {
             NavHost(
@@ -263,7 +269,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                         }
                     )
                 }
-            }}}}
+            }}}}}
 
 /*References
 *

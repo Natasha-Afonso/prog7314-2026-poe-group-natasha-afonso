@@ -31,6 +31,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,12 +58,12 @@ import kotlinx.coroutines.launch
 
 
 // Colours used on the Settings screen
-val SettingsTitle = Color(0xFF16213E)
-val SectionLabel = Color(0xFF43302E)
-val MutedGray = Color(0xFFAAB6BF)
-val DividerLight = Color(0xFFEEF1F3)
-val LogoutRed = Color(0xFFE85B4E)
-val SettingsBgBlue = Color(0xFFF5F7FA)
+val SettingsTitle: Color @Composable get() = MaterialTheme.colorScheme.onBackground
+val SectionLabel: Color @Composable get() = MaterialTheme.colorScheme.primary
+val MutedGray: Color @Composable get() = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+val DividerLight: Color @Composable get() = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
+val LogoutRed: Color @Composable get() = MaterialTheme.colorScheme.error
+val SettingsBgBlue: Color @Composable get() = MaterialTheme.colorScheme.background
 
 
 // This version connects the screen to the ViewModel
@@ -272,7 +273,7 @@ fun SettingsContent(
             Card(
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                 ),
                 elevation = CardDefaults.cardElevation(
                     defaultElevation = 0.dp
@@ -339,7 +340,7 @@ fun SettingsContent(
             Card(
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                 ),
                 elevation = CardDefaults.cardElevation(
                     defaultElevation = 0.dp
