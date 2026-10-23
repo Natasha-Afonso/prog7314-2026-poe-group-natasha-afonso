@@ -253,7 +253,7 @@ fun SettingsContent(
             Text(
                 text = "Manage your personal details and update preferences below.",
                 fontSize = 15.sp,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(
                     horizontal = 20.dp,
                     vertical = 4.dp
@@ -340,7 +340,7 @@ fun SettingsContent(
             Card(
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    containerColor = Color.White
                 ),
                 elevation = CardDefaults.cardElevation(
                     defaultElevation = 0.dp
@@ -423,7 +423,7 @@ fun SettingsContent(
                                 onNotificationsToggle,
 
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                                 checkedTrackColor = SectionLabel,
                                 uncheckedThumbColor = SectionLabel,
                                 uncheckedTrackColor = DividerLight
