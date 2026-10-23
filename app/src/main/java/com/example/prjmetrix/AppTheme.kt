@@ -10,6 +10,10 @@ import com.example.prjmetrix.ui.theme.*
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
+import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 @Composable
 //Pawar, 2026
@@ -190,6 +194,22 @@ private fun makeScheme(
         background = bg, onBackground = onColor(bg),
         surface = surf, onSurface = onColor(surf)
     )
+}
+// Remembers the chosen colour theme on this phone only
+class ColorThemeStore(context: Context) {
+
+    private val prefs = context.applicationContext
+        .getSharedPreferences("metrix_look", Context.MODE_PRIVATE)
+
+    var colorTheme by mutableStateOf(
+        prefs.getString("color_theme", "Default") ?: "Default"
+    )
+        private set
+
+    fun select(name: String) {
+        colorTheme = name
+        prefs.edit().putString("color_theme", name).apply()
+    }
 }
 
 /*Reference List:
