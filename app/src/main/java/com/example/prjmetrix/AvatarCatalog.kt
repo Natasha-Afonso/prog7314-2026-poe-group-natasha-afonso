@@ -148,6 +148,8 @@ val mouthOptions = listOf(
 
 )
 
+// Saved in the profile when the user has no lipstick on.
+const val NO_LIPSTICK = "none"
 val lipstickOptions = listOf(
     AvatarPart(
         "lipstick6_grin", R.drawable.lipstick6_grin,
@@ -187,14 +189,14 @@ fun buildAvatarLayers(
     val hair = hairOptions.firstOrNull { it.ref == hairRef } ?: hairOptions.first()
     val extension = extensionOptions.firstOrNull { it.ref == extensionRef } ?: extensionOptions.first()
     val mouth = mouthOptions.firstOrNull { it.ref == mouthRef } ?: mouthOptions.first()
-    val lipstick = lipstickOptions.firstOrNull { it.ref == lipstickRef } ?: lipstickOptions.first()
+    // No fallback here: null means "no lipstick"
+    val lipstick = lipstickOptions.firstOrNull { it.ref == lipstickRef }
 
     return body.layers + clothingLayers + faceBaseLayers +
             hair.layers + extension.layers +
             eyeLayers(eyeColor) +
-            mouth.layers + lipstick.layers
+            mouth.layers + (lipstick?.layers ?: emptyList())
 }
-
 /* References
 Kotlin, 2026. Enum classes. [online] Available at: < https://kotlinlang.org/docs/enum-classes.html > [Accessed 21 September 2026]
 Android Developers, 2026. Color. [online] Available at: < https://developer.android.com/reference/android/graphics/Color > [Accessed 21 September 2026]

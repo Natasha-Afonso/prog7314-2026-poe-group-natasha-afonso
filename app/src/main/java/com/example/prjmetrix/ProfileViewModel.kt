@@ -51,8 +51,9 @@ data class ProfileState(
     val extensionRef: String = extensionOptions.first().ref,
     val eyeColor: String = DEFAULT_EYE_COLOR,
     val mouthRef: String = mouthOptions.first().ref,
-    val lipstickRef: String = lipstickOptions.first().ref
+    val lipstickRef: String = NO_LIPSTICK      // lipstick is optional, so it starts off
 )
+
 
 // API text -> app types. Anything missing or unknown falls back to the default.
 // Enum.entries lists (Kotlin, 2026).
@@ -132,8 +133,10 @@ class ProfileViewModel(private val profileApi: ProfileApi) : ViewModel() {
     fun onExtensionSelected(ref: String) = changeProfile { it.copy(extensionRef = ref) }
     fun onEyeColorSelected(hex: String) = changeProfile { it.copy(eyeColor = hex) }
     fun onMouthSelected(ref: String) = changeProfile { it.copy(mouthRef = ref) }
-    fun onLipstickSelected(ref: String) = changeProfile { it.copy(lipstickRef = ref) }
-
+    // Tapping the lipstick that is already on switches it off (NO_LIPSTICK); tapping another one puts it on
+    fun onLipstickSelected(ref: String) = changeProfile {
+        it.copy(lipstickRef = if (it.lipstickRef == ref) NO_LIPSTICK else ref)
+    }
     //  updates the state right away, so the avatar changes instantly
     // 2) save the new profile in the background
     private fun changeProfile(transform: (ProfileState) -> ProfileState) {

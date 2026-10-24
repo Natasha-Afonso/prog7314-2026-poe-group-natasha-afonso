@@ -14,5 +14,6 @@ data class ProfileItemDTO(
     val extensionRef: String = "extention_hair",
     val eyeColor: String = "#240C0C",
     val mouthRef: String = "grin_mouth",
-    val lipstickRef: String = "lipstick6_grin"
+    val lipstickRef: String = NO_LIPSTICK
 )
+
