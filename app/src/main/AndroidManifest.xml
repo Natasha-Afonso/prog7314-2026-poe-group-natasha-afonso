@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!--used to fetch local weather for outfit suggestions(Android Developers, 2026) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
         android:networkSecurityConfig="@xml/network_security_config"
@@ -36,3 +38,7 @@
     </application>
 
 </manifest>
+
+<!--Reference List:
+Android Developers. 2026. Request location access at runtime. [Source Code]. Available at:<https://developer.android.com/develop/sensors-and-location/location/permissions/runtime> [Accessed 23 October 2026].
+-->

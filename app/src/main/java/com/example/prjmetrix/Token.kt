@@ -36,6 +36,8 @@ class Token(private val context: Context) {
     //when person is logged in = true
     suspend fun isLoggedIn(): Boolean = !getIdToken().isNullOrBlank()
 
+    suspend fun getUid(): String? = context.dataStore.data.first()[UID]
+
     suspend fun clear() { //data is cleared when user logsout
         context.dataStore.edit { it.clear() }
     }

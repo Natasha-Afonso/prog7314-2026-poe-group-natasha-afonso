@@ -5,12 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class ClothingUiState(
     val clothing: List<ClothingItem> = emptyList(),
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val wishlist: List<ClothingItem> = emptyList(),
+    val isSaving: Boolean = false, //uploading/removing background
+    val infoMessage: String? = null
 )
 
 class ClothingViewModel(
@@ -27,22 +31,21 @@ class ClothingViewModel(
 
         viewModelScope.launch {
 
-            _uiState.value =
-                _uiState.value.copy(
-                    isLoading = true,
-                    errorMessage = null
-                )
+            _uiState.update {
+                it.copy(isLoading = true, errorMessage = null)
+            }
 
-            repository.getClothing()
+                val wardrobe = repository.getClothing()
+                val wishlist = repository.getWishlist().getOrDefault(_uiState.value.wishlist)
 
-                .onSuccess { clothing ->
+                    wardrobe
+                        .onSuccess { clothing ->
+                            _uiState.update {
+                                it.copy(clothing = clothing, wishlist = wishlist, isLoading = false)
+                            }
+                        }
 
-                    _uiState.value =
-                        ClothingUiState(
-                            clothing = clothing,
-                            isLoading = false
-                        )
-                }
+
 
                 .onFailure { error ->
 
@@ -65,11 +68,9 @@ class ClothingViewModel(
 
         viewModelScope.launch {
 
-            _uiState.value =
-                _uiState.value.copy(
-                    isLoading = true,
-                    errorMessage = null
-                )
+            _uiState.update {
+                it.copy(isSaving = true, errorMessage = null, infoMessage = null)
+            }
 
             repository.addClothing(
                 name,
@@ -77,20 +78,47 @@ class ClothingViewModel(
                 imageUri
             )
 
-                .onSuccess {
-
+                .onSuccess { added ->
+                    _uiState.update {
+                        it.copy(isSaving = false, infoMessage = if(imageUri != null && !added.backgroundRemoved)
+                        {
+                            "Added with the original photo. ${added.note ?: ""}".trim()
+                        }else null
+                        )
+                    }
                     loadClothing()
                 }
 
                 .onFailure { error ->
 
-                    _uiState.value =
-                        _uiState.value.copy(
-                            isLoading = false,
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
                             errorMessage =
                                 error.message
                                     ?: "Could not add clothing."
                         )
+                    }
+                }
+        }
+    }
+
+    fun addWishlist(name: String, category: String, imageUri: Uri?) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, errorMessage = null, infoMessage = null) }
+
+            repository.addWishlist(name, category, imageUri)
+                .onSuccess {
+                    _uiState.update { it.copy(isSaving = false) }
+                    loadClothing()
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            errorMessage = error.message ?: "Could not add to wishlist."
+                        )
+                    }
                 }
         }
     }
@@ -110,21 +138,27 @@ class ClothingViewModel(
 
                 .onFailure { error ->
 
-                    _uiState.value =
-                        _uiState.value.copy(
-                            errorMessage =
-                                error.message
-                                    ?: "Could not delete clothing."
-                        )
+                        _uiState.update {
+                            it.copy(
+
+                                errorMessage =
+                                    error.message
+                                        ?: "Could not delete clothing."
+                            )
+                        }
                 }
         }
     }
 
     fun clearError() {
+        _uiState.update {
+            it.copy(errorMessage = null)
+        }
+    }
 
-        _uiState.value =
-            _uiState.value.copy(
-                errorMessage = null
-            )
+    fun clearInfo() {
+        _uiState.update {
+            it.copy(infoMessage = null)
+        }
     }
 }
