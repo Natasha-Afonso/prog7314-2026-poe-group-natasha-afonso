@@ -1,5 +1,6 @@
 package com.example.prjmetrix
 
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 
 // AVATAR CATALOG-describes every layer the avatar is drawn from.
@@ -33,7 +34,8 @@ private val EyebrowPlacement = Placement(55f, 93f, 271f, 253f)    // eyebrows   
 data class AvatarLayer(
     val res: Int,
     val placement: Placement = FullCanvas,
-    val tint: Color? = null
+    val tint: Color? = null,
+    val blendMode: BlendMode = BlendMode.SrcIn
 )
 
 // One thing the user can pick from a list. It can be made of several layers.
@@ -122,7 +124,7 @@ fun parseEyeColor(hex: String): Color =
 private fun eyeLayers(colorHex: String) = listOf(
     AvatarLayer(R.drawable.base_white_eyes),
     AvatarLayer(R.drawable.eyes_lashes1, tint = LashTint),
-    AvatarLayer(R.drawable.eye1c, tint = parseEyeColor(colorHex).copy(alpha = IRIS_ALPHA))
+    AvatarLayer(R.drawable.eye1c, tint = parseEyeColor(colorHex), blendMode = BlendMode.Modulate)
 )
 
 

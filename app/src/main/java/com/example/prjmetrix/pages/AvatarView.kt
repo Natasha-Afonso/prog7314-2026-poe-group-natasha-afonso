@@ -33,7 +33,7 @@ fun AvatarView(layers: List<AvatarLayer>, modifier: Modifier = Modifier) {
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 // tint uses BlendMode.SrcIn: the colour shows wherever the image has pixels
-                colorFilter = layer.tint?.let { ColorFilter.tint(it) },
+                colorFilter = layer.tint?.let { ColorFilter.tint(it, layer.blendMode) },
                 modifier = Modifier
                     .offset(x = (p.x * scale).dp, y = (p.y * scale).dp)          // move to its spot on the canvas
                     .size(width = (p.w * scale).dp, height = (p.h * scale).dp)   // scale its size the same way

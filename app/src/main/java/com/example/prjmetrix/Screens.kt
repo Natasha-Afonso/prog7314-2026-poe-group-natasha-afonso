@@ -1529,11 +1529,9 @@ private fun NavStripIcon(
    }
 }
 /*References
-
 Teergarden, C., 2023. Mastering Lazy Lists in Jetpack Compose with Data Classes and MVI. (Version 10.0) [Source Code]. Available at: < https://proandroiddev.com/mastering-lazy-lists-in-jetpack-compose-with-data-classes-and-mvi-da240800c6e9 > [Accessed 21 September 2026]
 Kavi, R., 2026. Mastering High-Performance Custom Canvas animations in jetpack compose: building a premium circular progress indicator. (Version 10.0) [Source Code]. Available at: < https://raghunandan2005.medium.com/mastering-high-performance-custom-canvas-animations-in-jetpack-compose-building-a-premium-circular-b9f9e465b118 > [Accessed 21 September 2026]
 Malla, M., 2023. Jetsurvey. (Version 10.0) [Source Code]. Available at: < https://github.com/ManasMalla/Jetsurvey > [Accessed 21 September 2026]
 Easy Tuto, 2024. Simple to do App jetpackcompose androidtutorial. (Version 10.0) [Source Code]. Available at: < https://youtu.be/P3xQdINdrWY?si=0Z52xSOqN96XhODE > [Accessed 21 September 2026]
 Samsung Developer., 2025. Build a health app with steps from Samsung Health and its connected wearables. (Version 10.0) [Source Code]. Available at: < https://youtu.be/kEe0bRqhx-g?si=tn83CXqncnYI_ska > [Accessed 21 September 2026]
-
  */
