@@ -85,6 +85,7 @@ namespace MetrixAPI.Services
                 .Where(oi => oi.ClothingItemId == id)
                 .ToListAsync();
 
+            _context.OutfitItems.RemoveRange(outfitLinks);
             _context.ClothingItems.Remove(item);
 
             await _context.SaveChangesAsync();

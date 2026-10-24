@@ -34,29 +34,53 @@ namespace MetrixAPI.Controllers
 
         [HttpPost]
         public async Task<IActionResult> AddClothing(
-            [FromBody] ClothingItem item)
+            [FromBody] ClothingItemRequest request)
         {
-            if (string.IsNullOrWhiteSpace(item.Name))
+            var error = Validate(request, "Clothing");
+            if (error != null)
             {
-                return BadRequest("Clothing name is required.");
+                return BadRequest(error);
             }
 
             return Ok(
-                await _clothingService.AddClothingAsync(item));
+                await _clothingService.AddClothingAsync(ToEntity(request)));
         }
 
         [HttpPost("wishlist")]
         public async Task<IActionResult> AddWishlist(
-            [FromBody] ClothingItem item)
+            [FromBody] ClothingItemRequest request)
         {
-            if (string.IsNullOrWhiteSpace(item.Name))
+            var error = Validate(request, "Wishlist item");
+            if (error != null)
             {
-                return BadRequest("Item name is required.");
+                return BadRequest(error);
             }
 
+
             return Ok(
-                await _clothingService.AddWishlistAsync(item));
+                await _clothingService.AddWishlistAsync(ToEntity(request)));
         }
+
+          private static string? Validate(ClothingItemRequest request, string label)
+        {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return $"{label} name is required.";
+            if (request.Name.Trim().Length > 100)
+                return $"{label} name can be at most 100 characters.";
+            if (string.IsNullOrWhiteSpace(request.Category) || request.Category.Trim().Length > 50)
+                return "A category (maximum 50 characters) is required.";
+            if (request.ImageUrl != null && request.ImageUrl.Length > 1000)
+                return "Image URL is too long.";
+            return null;
+        }
+
+        private static ClothingItem ToEntity(ClothingItemRequest request) =>
+            new ClothingItem
+            {
+                Name = request.Name.Trim(),
+                Category = request.Category.Trim(),
+                ImageUrl = request.ImageUrl
+            };
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteClothing(

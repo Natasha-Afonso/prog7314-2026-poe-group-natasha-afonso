@@ -16,4 +16,10 @@ interface FileApi {
     suspend fun uploadImage(
         @Part file: MultipartBody.Part
     ): Response<ImageUploadResponse>
+
+    @Multipart
+    @POST("api/clothing/remove-background")
+    suspend fun removeBackground(
+        @Part file: MultipartBody.Part
+    ): Response<ImageUploadResponse>
 }

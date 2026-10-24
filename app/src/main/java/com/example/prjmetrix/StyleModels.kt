@@ -8,6 +8,8 @@ data class Outfit(
 
 // Outfits made by tapping "Wear it" on the daily suggestion are saved
 
+const val WEATHER_PICK_PREFIX = "Weather pick"
+
 val Outfit.isWeatherPick: Boolean
     get() = name.startsWith(WEATHER_PICK_PREFIX)
 

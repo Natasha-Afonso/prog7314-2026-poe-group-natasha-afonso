@@ -66,4 +66,78 @@ CREATE TABLE Profiles (
     CreatedAt    DATETIME      NOT NULL DEFAULT GETUTCDATE()
 );
 
+CREATE TABLE Outfits (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    UserId NVARCHAR(128) NOT NULL,
+    Name NVARCHAR(200) NOT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+);
+
+CREATE TABLE OutfitItems (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    OutfitId INT NOT NULL,
+    ClothingItemId INT NOT NULL,
+    CONSTRAINT FK_OutfitItems_Outfit FOREIGN KEY (OutfitId)
+        REFERENCES Outfits(Id) ON DELETE CASCADE,
+    CONSTRAINT FK_OutfitItems_ClothingItem FOREIGN KEY (ClothingItemId)
+        REFERENCES ClothingItems(Id) ON DELETE CASCADE
+);
+
+CREATE TABLE OutfitSchedules (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    UserId NVARCHAR(128) NOT NULL,
+    OutfitId INT NOT NULL,
+    [Date] DATE NOT NULL,
+    CONSTRAINT FK_OutfitSchedules_Outfit FOREIGN KEY (OutfitId)
+        REFERENCES Outfits(Id) ON DELETE CASCADE,
+    CONSTRAINT UQ_OutfitSchedules_User_Date UNIQUE (UserId, [Date])
+);
+
+CREATE TABLE OutfitWearLogs (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    UserId NVARCHAR(128) NOT NULL,
+    OutfitId INT NOT NULL,
+    [Date] DATE NOT NULL,
+    AcceptedSuggestion BIT NOT NULL,
+    CONSTRAINT FK_OutfitWearLogs_Outfit FOREIGN KEY (OutfitId)
+        REFERENCES Outfits(Id) ON DELETE CASCADE
+);
+
+CREATE TABLE SelfCareQuizResults (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    UserId NVARCHAR(128) NOT NULL,
+    Score INT NOT NULL,
+    Reflection NVARCHAR(MAX) NOT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+);
+
+CREATE TABLE UserSettings (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    UserId NVARCHAR(128) NOT NULL,
+    Language NVARCHAR(100) NOT NULL DEFAULT 'English',
+    Theme NVARCHAR(100) NOT NULL DEFAULT 'System',
+    PushNotifications BIT NOT NULL DEFAULT 1,
+    FontSize NVARCHAR(50) NOT NULL DEFAULT 'Medium',
+    HighContrast BIT NOT NULL DEFAULT 0,
+    UpdatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+    CONSTRAINT UQ_UserSettings_UserId UNIQUE (UserId)
+);
+
+CREATE TABLE BugReports (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    UserId NVARCHAR(128) NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(4000) NOT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+);
+
+CREATE TABLE AppRatings (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    UserId NVARCHAR(128) NOT NULL,
+    Rating INT NOT NULL,
+    Comment NVARCHAR(1000) NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+);
+
+
 GO

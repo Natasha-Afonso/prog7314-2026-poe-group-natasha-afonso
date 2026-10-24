@@ -17,7 +17,8 @@ import java.time.LocalDate
 import java.util.Locale
 
 data class StyleUiState(
-    val outfits: List<Outfit> = emptyList(),                   val schedule: Map<String, Int> = emptyMap(),
+    val outfits: List<Outfit> = emptyList(),
+    val schedule: Map<String, Int> = emptyMap(),
     val weather: WeatherSnapshot? = null,
     val weatherError: String? = null,
     val suggestion: SuggestionRecord? = null,

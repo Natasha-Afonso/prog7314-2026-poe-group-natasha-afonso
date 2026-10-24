@@ -11,7 +11,7 @@ public record OutfitDto(int Id, string Name, DateTime CreatedAt, List<OutfitItem
 public record CalendarEventDto(DateOnly Date, string Title, string Type, int? OutfitId, string? OutfitName);
 public record WearLogDto(DateOnly Date, int OutfitId, string OutfitName, bool AcceptedSuggestion, List<OutfitItemDto> Items);
 public record SelfCareQuizDto(int Id, DateTime CreatedAt, int Score, string Reflection);
-public record SelfCareQuizRequest(int Score, string Reflection);
+
 
 public record MagazineDto(
     DateOnly WeekStart,

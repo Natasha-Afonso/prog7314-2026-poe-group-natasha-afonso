@@ -1,4 +1,4 @@
-using System.Text.Json;
+/*using System.Text.Json;
 using MetrixAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,4 +29,4 @@ public class WeatherController : ControllerBase
             daily.GetProperty("weather_code")[0].GetInt32()));
     }
 }
-
+*/

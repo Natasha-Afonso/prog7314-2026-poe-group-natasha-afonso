@@ -52,6 +52,7 @@ import com.example.prjmetrix.isWeatherPick
 import com.example.prjmetrix.StyleViewModelFactory
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -149,8 +150,8 @@ fun PlannerScreen(
                         modifier = Modifier.clickable { month = month.minusMonths(1) }.padding(horizontal = 12.dp)
                     )
                     Text(
-                        "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.year}",
-                        fontSize = 20.sp, fontWeight = FontWeight.Bold, color = darkText
+                        selected.format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy")),
+                        fontSize = 18.sp, fontWeight = FontWeight.Bold, color = darkText
                     )
                     Text(
                         "›", fontSize = 30.sp, color = darkText,
@@ -203,9 +204,8 @@ fun PlannerScreen(
 
         // Selected day
         Text(
-            "${selected.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())}, " +
-                    "${selected.dayOfMonth} ${selected.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${selected.year}",
-            fontSize = 18.sp, fontWeight = FontWeight.Bold, color = darkText
+            month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+            fontSize = 20.sp, fontWeight = FontWeight.Bold, color = darkText
         )
         Spacer(Modifier.height(10.dp))
 
