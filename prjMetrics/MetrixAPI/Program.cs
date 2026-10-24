@@ -7,6 +7,7 @@ using MetrixAPI.Data;
 using MetrixAPI.Models;
 using MetrixAPI.Services;
 using Azure.Storage.Blobs;
+using Microsoft.AspNetCore.Identity;
 
 
 namespace MetrixAPI
@@ -25,8 +26,8 @@ namespace MetrixAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-    var connectionString = Environment.GetEnvironmentVariable("SQL_CONNECTION_STRING")
-        ?? builder.Configuration.GetConnectionString("DefaultConnection");
+            var connectionString = Environment.GetEnvironmentVariable("SQL_CONNECTION_STRING")
+             ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
           // Add services to the container.
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -90,6 +91,7 @@ namespace MetrixAPI
                 });
 
             builder.Services.AddAuthorization();
+            builder.Services.AddScoped<IPasswordHasher<Biometric>, PasswordHasher<Biometric>>();
 
             var app = builder.Build();
 

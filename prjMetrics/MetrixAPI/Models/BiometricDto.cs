@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
+//(Watmore, 2018)
 namespace MetrixAPI.Models
 {
     //BiometricDto has class all the data transfer object (classes) used for setting up biometric authentication
@@ -8,8 +9,6 @@ namespace MetrixAPI.Models
     //biometrics fallback pin objects
     public class SavePinRequest
     {
-        public string? CurrentPin { get; set; } = string.Empty;
-
         [Required]
         public string NewPin { get; set; } = string.Empty;
     }
@@ -27,7 +26,7 @@ namespace MetrixAPI.Models
     public class VerifyPinRequest
     {
         [Required]
-        public string Pin { get; set; }
+        public string Pin { get; set; } = string.Empty;
     }
 
     public class BiometricStatusResponse

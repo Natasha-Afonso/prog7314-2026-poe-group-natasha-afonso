@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MetrixAPI.Models
 {
-    public class Biometrics
+    public class Biometric
     {
         [Key]
         public int Id { get; set; }
