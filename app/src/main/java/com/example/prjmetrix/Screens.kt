@@ -54,6 +54,8 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Edit
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.List
@@ -343,6 +345,22 @@ fun HomeScreen(
    val habitEntities by habitRepo.observeHabits().collectAsState(initial = emptyList())
    val todayString = remember { LocalDate.now().toString() }
 
+   // Furniture inventory (Room)
+   // Same pattern as the habits: the table is observed as a Flow, so the room and the edit-mode
+   // tray update whenever a row changes (Android Developers, 2026).
+   val furnitureRepo = remember { FurnitureRepository(context.applicationContext) }
+   val furniture by furnitureRepo.observeFurniture().collectAsState(initial = emptyList())
+   var editMode by remember { mutableStateOf(false) }
+   var selectedFurnitureId by remember { mutableStateOf<Int?>(null) }
+   val furnitureScope = rememberCoroutineScope()
+   LaunchedEffect(Unit) { furnitureRepo.ensureStarterFurniture() }
+
+   // Back leaves edit mode instead of the screen
+   BackHandler(enabled = editMode) {
+      editMode = false
+      selectedFurnitureId = null
+   }
+
    val habitCircles = remember(habitEntities) {
       habitEntities.take(3).map { it.toCircle(todayString) }
    }
@@ -483,359 +501,392 @@ fun HomeScreen(
          contentScale = ContentScale.FillHeight
       )
 
-      // Shadow under the avatar
-      Box(
-         modifier = Modifier
-            .width(90.dp).height(16.dp)
-            .align(Alignment.Center).offset(y = 232.dp)
-            .clip(RoundedCornerShape(50))
-            .background(Color.Black.copy(alpha = 0.18f))
+      // Furniture: drawn from the owned_furniture table (the blue lamp is now a row in it).
+      // Drawn behind the avatar; draggable only in edit mode.
+      FurnitureLayer(
+         furniture = furniture,
+         editMode = editMode,
+         selectedId = selectedFurnitureId,
+         onSelect = { selectedFurnitureId = it },
+         onMove = { id, x, y -> furnitureScope.launch { furnitureRepo.move(id, x, y) } },
+         onPickUp = { id -> furnitureScope.launch { furnitureRepo.pickUp(id) } }
       )
 
-
-      // Uses the same avatar parts selected on the Profile screen.
-      AvatarView(
-         layers = avatarLayers,
-         modifier = Modifier
-            .fillMaxWidth()
-            .height(500.dp)
-            .align(Alignment.Center)
-            .onGloballyPositioned { coords -> avatarRootPosition = coords.positionInRoot() }
-            .pointerInput(Unit) {
-               detectTapGestures(onTap = { local ->
-                  pieMenuCenter = avatarRootPosition + local
-               })
-            }
-      )
-      Image(
-         painter = painterResource(id = R.drawable.blue_lamp),
-         contentDescription = "Blue lamp",
-         modifier = Modifier
-            .width(92.dp).height(354.dp)
-            .align(Alignment.CenterStart)
-            .offset(x = 26.dp, y = 100.dp),
-         contentScale = ContentScale.Fit
-      )
-
-      // Keep the progress circles out of the way while the habit menu is open.
-      if (pieMenuCenter == null) {
-         Column(
-            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-16).dp, y = 210.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-            horizontalAlignment = Alignment.End
-         ) {
-            habitCircles.forEachIndexed { index, habit ->
-               LiquidHabitCircle(
-                  label = habit.label,
-                  icon = habit.icon,
-                  progress = habit.progress,
-                  liquidColor = habit.color,
-                  onClick = { bumpHabitProgress(index) }
-               )
-            }
-         }
-      }
-
-      // Top app bar
-      JetpackTopNavbar(
-         coins = userCoins,
-         todoCount = todos.count { !it.done },
-         todoPanelOpen = isQuestCardVisible,
-         hasUnreadNews = newsItems.isNotEmpty(),
-         newsBoardOpen = showNewsBoard,
-         onTodoClick = {
-            // Opens or hides the quest card.
-            isQuestCardVisible = !isQuestCardVisible
-         },
-         onNewsClick = {
-            showNewsBoard = !showNewsBoard
-         },
-         onProfileClick = { },
-         onSettingsClick = onSettingsClick,
-         onSyncClick = syncHabits
-      )
-
-      // Shows when the API is unavailable; habits are still saved locally.
-      AnimatedVisibility(
-         visible = syncStatus == SyncResult.OFFLINE,
-         modifier = Modifier
-            .align(Alignment.TopCenter)
-            .statusBarsPadding()
-            .padding(top = 62.dp),
-         enter = expandVertically(),
-         exit = shrinkVertically()
-      ) {
-         Row(
+      // Edit mode hides everything except the room background and the furniture
+      if (!editMode) {
+         // Shadow under the avatar
+         Box(
             modifier = Modifier
+               .width(90.dp).height(16.dp)
+               .align(Alignment.Center).offset(y = 232.dp)
                .clip(RoundedCornerShape(50))
-               .background(Color(0xFF37474F).copy(alpha = 0.88f))
-               .padding(horizontal = 12.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically
-         ) {
-            Icon(Icons.Default.CloudOff, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Offline · saved on this phone", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-         }
-      }
+               .background(Color.Black.copy(alpha = 0.18f))
+         )
 
-      // Quest and habits card
-      AnimatedVisibility(
-         visible = isQuestCardVisible,
-         modifier = Modifier
-            .align(Alignment.TopStart)
-            .offset(x = 10.dp, y = 110.dp),
-         enter = expandVertically(),
-         exit = shrinkVertically()
-      ) {
-         Card(
+
+         // Uses the same avatar parts selected on the Profile screen.
+         AvatarView(
+            layers = avatarLayers,
             modifier = Modifier
-               .width(188.dp)
-               .heightIn(max = if (isQuestCardExpanded) 340.dp else Dp.Unspecified),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = GlassWhite),
-            border = BorderStroke(1.dp, CardBorder),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+               .fillMaxWidth()
+               .height(500.dp)
+               .align(Alignment.Center)
+               .onGloballyPositioned { coords -> avatarRootPosition = coords.positionInRoot() }
+               .pointerInput(Unit) {
+                  detectTapGestures(onTap = { local ->
+                     pieMenuCenter = avatarRootPosition + local
+                  })
+               }
+         )
+
+         // Keep the progress circles out of the way while the habit menu is open.
+         if (pieMenuCenter == null) {
+            Column(
+               modifier = Modifier.align(Alignment.TopEnd).offset(x = (-16).dp, y = 210.dp),
+               verticalArrangement = Arrangement.spacedBy(18.dp),
+               horizontalAlignment = Alignment.End
+            ) {
+               habitCircles.forEachIndexed { index, habit ->
+                  LiquidHabitCircle(
+                     label = habit.label,
+                     icon = habit.icon,
+                     progress = habit.progress,
+                     liquidColor = habit.color,
+                     onClick = { bumpHabitProgress(index) }
+                  )
+               }
+            }
+         }
+
+         // Top app bar
+         JetpackTopNavbar(
+            coins = userCoins,
+            todoCount = todos.count { !it.done },
+            todoPanelOpen = isQuestCardVisible,
+            hasUnreadNews = newsItems.isNotEmpty(),
+            newsBoardOpen = showNewsBoard,
+            onTodoClick = {
+               // Opens or hides the quest card.
+               isQuestCardVisible = !isQuestCardVisible
+            },
+            onNewsClick = {
+               showNewsBoard = !showNewsBoard
+            },
+            onProfileClick = { },
+            onSettingsClick = onSettingsClick,
+            onSyncClick = syncHabits,
+            onEditModeClick = {
+               // Close anything open on top of the room before editing
+               pieMenuCenter = null
+               showNewsBoard = false
+               selectedFurnitureId = null
+               editMode = true
+            }
+         )
+
+         // Shows when the API is unavailable; habits are still saved locally.
+         AnimatedVisibility(
+            visible = syncStatus == SyncResult.OFFLINE,
+            modifier = Modifier
+               .align(Alignment.TopCenter)
+               .statusBarsPadding()
+               .padding(top = 62.dp),
+            enter = expandVertically(),
+            exit = shrinkVertically()
          ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-               // Card header and close button
-               Row(
-                  modifier = Modifier.fillMaxWidth(),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.SpaceBetween
-               ) {
-                  Column(modifier = Modifier.weight(1f)) {
-                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                           text = todayDateString,
-                           fontSize = 10.sp,
-                           fontWeight = FontWeight.Bold,
-                           color = InkSoft,
-                           maxLines = 1
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        StepsChip(
-                           steps = todaySteps,
-                           hasPermission = stepsPermissionGranted,
-                           onConnectClick = {
-                              val activity = context.findActivity() ?: return@StepsChip
-                              scope.launch {
-                                 try {
-                                    stepsRepo.requestPermissions(activity)
-                                    refreshSteps()
-                                 } catch (e: HealthDataException) {
-                                    Log.e("Steps", "Permission request failed", e)
+            Row(
+               modifier = Modifier
+                  .clip(RoundedCornerShape(50))
+                  .background(Color(0xFF37474F).copy(alpha = 0.88f))
+                  .padding(horizontal = 12.dp, vertical = 5.dp),
+               verticalAlignment = Alignment.CenterVertically
+            ) {
+               Icon(Icons.Default.CloudOff, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+               Spacer(modifier = Modifier.width(6.dp))
+               Text("Offline · saved on this phone", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+            }
+         }
+
+         // Quest and habits card
+         AnimatedVisibility(
+            visible = isQuestCardVisible,
+            modifier = Modifier
+               .align(Alignment.TopStart)
+               .offset(x = 10.dp, y = 110.dp),
+            enter = expandVertically(),
+            exit = shrinkVertically()
+         ) {
+            Card(
+               modifier = Modifier
+                  .width(188.dp)
+                  .heightIn(max = if (isQuestCardExpanded) 340.dp else Dp.Unspecified),
+               shape = RoundedCornerShape(20.dp),
+               colors = CardDefaults.cardColors(containerColor = GlassWhite),
+               border = BorderStroke(1.dp, CardBorder),
+               elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+               Column(modifier = Modifier.padding(12.dp)) {
+                  // Card header and close button
+                  Row(
+                     modifier = Modifier.fillMaxWidth(),
+                     verticalAlignment = Alignment.CenterVertically,
+                     horizontalArrangement = Arrangement.SpaceBetween
+                  ) {
+                     Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                           Text(
+                              text = todayDateString,
+                              fontSize = 10.sp,
+                              fontWeight = FontWeight.Bold,
+                              color = InkSoft,
+                              maxLines = 1
+                           )
+                           Spacer(modifier = Modifier.width(6.dp))
+                           StepsChip(
+                              steps = todaySteps,
+                              hasPermission = stepsPermissionGranted,
+                              onConnectClick = {
+                                 val activity = context.findActivity() ?: return@StepsChip
+                                 scope.launch {
+                                    try {
+                                       stepsRepo.requestPermissions(activity)
+                                       refreshSteps()
+                                    } catch (e: HealthDataException) {
+                                       Log.e("Steps", "Permission request failed", e)
+                                    }
                                  }
                               }
-                           }
+                           )
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                           text = "Today's Quests",
+                           fontSize = 15.sp,
+                           fontWeight = FontWeight.ExtraBold,
+                           color = Ink
                         )
                      }
-                     Spacer(modifier = Modifier.height(2.dp))
-                     Text(
-                        text = "Today's Quests",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Ink
-                     )
+
+                     // Close the quest card.
+                     IconButton(
+                        onClick = { isQuestCardVisible = false },
+                        modifier = Modifier.size(22.dp)
+                     ) {
+                        Icon(
+                           imageVector = Icons.Default.Close,
+                           contentDescription = "Close Quests",
+                           tint = InkSoft,
+                           modifier = Modifier.size(16.dp)
+                        )
+                     }
                   }
 
-                  // Close the quest card.
-                  IconButton(
-                     onClick = { isQuestCardVisible = false },
-                     modifier = Modifier.size(22.dp)
-                  ) {
-                     Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close Quests",
-                        tint = InkSoft,
-                        modifier = Modifier.size(16.dp)
+                  // Shows progress for the three pinned habits.
+                  Spacer(modifier = Modifier.height(8.dp))
+                  Row(verticalAlignment = Alignment.CenterVertically) {
+                     LinearProgressIndicator(
+                        progress = {
+                           if (pinnedHabits.isEmpty()) 0f
+                           else pinnedHabits.count { it.done } / pinnedHabits.size.toFloat()
+                        },
+                        color = Color(0xFF66BB6A),
+                        trackColor = Color(0xFFE8EAED),
+                        modifier = Modifier
+                           .weight(1f)
+                           .height(6.dp)
+                           .clip(RoundedCornerShape(50))
                      )
-                  }
-               }
-
-               // Shows progress for the three pinned habits.
-               Spacer(modifier = Modifier.height(8.dp))
-               Row(verticalAlignment = Alignment.CenterVertically) {
-                  LinearProgressIndicator(
-                     progress = {
-                        if (pinnedHabits.isEmpty()) 0f
-                        else pinnedHabits.count { it.done } / pinnedHabits.size.toFloat()
-                     },
-                     color = Color(0xFF66BB6A),
-                     trackColor = Color(0xFFE8EAED),
-                     modifier = Modifier
-                        .weight(1f)
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(50))
-                  )
-                  Spacer(modifier = Modifier.width(8.dp))
-                  Text(
-                     text = "${pinnedHabits.count { it.done }}/${pinnedHabits.size}",
-                     fontSize = 11.sp,
-                     fontWeight = FontWeight.Bold,
-                     color = InkSoft
-                  )
-               }
-
-               Spacer(modifier = Modifier.height(6.dp))
-
-               // The list scrolls when the card is expanded.
-               Column(
-                  modifier = Modifier
-                     .weight(1f, fill = false)
-                     .then(if (isQuestCardExpanded) Modifier.verticalScroll(questScroll) else Modifier)
-               ) {
-                  if (pinnedHabits.isEmpty()) {
+                     Spacer(modifier = Modifier.width(8.dp))
                      Text(
-                        text = "No habits yet. Open the list below to add your first one.",
+                        text = "${pinnedHabits.count { it.done }}/${pinnedHabits.size}",
                         fontSize = 11.sp,
-                        color = Color(0xFF90A4AE),
-                        modifier = Modifier.padding(vertical = 6.dp)
+                        fontWeight = FontWeight.Bold,
+                        color = InkSoft
                      )
                   }
 
-                  // Show the three pinned habits.
-                  pinnedHabits.forEach { item ->
-                     TodoRow(item = item, onToggle = {
-                        val updated = !item.done
-                        saveProgress(item.id, if (updated) 1f else 0f)
-                     })
-                  }
+                  Spacer(modifier = Modifier.height(6.dp))
 
-                  // Show the remaining habits when expanded.
-                  if (isQuestCardExpanded) {
-                     Spacer(modifier = Modifier.height(6.dp))
-                     HorizontalDivider(thickness = 1.dp, color = Color(0xFFE0E0E0))
-                     Spacer(modifier = Modifier.height(8.dp))
+                  // The list scrolls when the card is expanded.
+                  Column(
+                     modifier = Modifier
+                        .weight(1f, fill = false)
+                        .then(if (isQuestCardExpanded) Modifier.verticalScroll(questScroll) else Modifier)
+                  ) {
+                     if (pinnedHabits.isEmpty()) {
+                        Text(
+                           text = "No habits yet. Open the list below to add your first one.",
+                           fontSize = 11.sp,
+                           color = Color(0xFF90A4AE),
+                           modifier = Modifier.padding(vertical = 6.dp)
+                        )
+                     }
 
-                     Text(
-                        text = "ALL HABITS",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFF9E9E9E),
-                        modifier = Modifier.padding(bottom = 2.dp)
-                     )
-
-                     otherHabits.forEach { item ->
+                     // Show the three pinned habits.
+                     pinnedHabits.forEach { item ->
                         TodoRow(item = item, onToggle = {
                            val updated = !item.done
                            saveProgress(item.id, if (updated) 1f else 0f)
                         })
                      }
 
-                     Spacer(modifier = Modifier.height(6.dp))
+                     // Show the remaining habits when expanded.
+                     if (isQuestCardExpanded) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HorizontalDivider(thickness = 1.dp, color = Color(0xFFE0E0E0))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                     // Opens the add-habit dialog.
-                     Row(
-                        modifier = Modifier
-                           .fillMaxWidth()
-                           .height(34.dp)
-                           .clip(RoundedCornerShape(10.dp))
-                           .background(Accent.copy(alpha = 0.08f))
-                           .clickable { showAddHabitDialog = true },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Accent, modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add habit", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Accent)
+                        Text(
+                           text = "ALL HABITS",
+                           fontSize = 10.sp,
+                           fontWeight = FontWeight.Black,
+                           color = Color(0xFF9E9E9E),
+                           modifier = Modifier.padding(bottom = 2.dp)
+                        )
+
+                        otherHabits.forEach { item ->
+                           TodoRow(item = item, onToggle = {
+                              val updated = !item.done
+                              saveProgress(item.id, if (updated) 1f else 0f)
+                           })
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Opens the add-habit dialog.
+                        Row(
+                           modifier = Modifier
+                              .fillMaxWidth()
+                              .height(34.dp)
+                              .clip(RoundedCornerShape(10.dp))
+                              .background(Accent.copy(alpha = 0.08f))
+                              .clickable { showAddHabitDialog = true },
+                           verticalAlignment = Alignment.CenterVertically,
+                           horizontalArrangement = Arrangement.Center
+                        ) {
+                           Icon(Icons.Default.Add, contentDescription = null, tint = Accent, modifier = Modifier.size(15.dp))
+                           Spacer(modifier = Modifier.width(4.dp))
+                           Text("Add habit", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Accent)
+                        }
                      }
                   }
-               }
 
-               Spacer(modifier = Modifier.height(6.dp))
+                  Spacer(modifier = Modifier.height(6.dp))
 
-               // Expands or collapses the habit list.
-               Row(
-                  modifier = Modifier
-                     .fillMaxWidth()
-                     .clickable { isQuestCardExpanded = !isQuestCardExpanded }
-                     .padding(vertical = 2.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.Center
-               ) {
-                  Text(
-                     text = if (isQuestCardExpanded) "Show Less" else "View All Habits",
-                     fontSize = 12.sp,
-                     fontWeight = FontWeight.Bold,
-                     color = Accent
-                  )
-                  Icon(
-                     imageVector = if (isQuestCardExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                     contentDescription = null,
-                     tint = Accent,
-                     modifier = Modifier.size(16.dp)
-                  )
+                  // Expands or collapses the habit list.
+                  Row(
+                     modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isQuestCardExpanded = !isQuestCardExpanded }
+                        .padding(vertical = 2.dp),
+                     verticalAlignment = Alignment.CenterVertically,
+                     horizontalArrangement = Arrangement.Center
+                  ) {
+                     Text(
+                        text = if (isQuestCardExpanded) "Show Less" else "View All Habits",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Accent
+                     )
+                     Icon(
+                        imageVector = if (isQuestCardExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = Accent,
+                        modifier = Modifier.size(16.dp)
+                     )
+                  }
                }
             }
          }
-      }
 
-      // Reward popup
-      if (showRewardPopup) {
-         Card(
-            modifier = Modifier
-               .width(230.dp)
-               .align(Alignment.Center),
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
-            border = BorderStroke(2.dp, Color(0xFFFBC02D)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
-         ) {
-            Column(
-               modifier = Modifier.padding(16.dp),
-               horizontalAlignment = Alignment.CenterHorizontally
+         // Reward popup
+         if (showRewardPopup) {
+            Card(
+               modifier = Modifier
+                  .width(230.dp)
+                  .align(Alignment.Center),
+               shape = RoundedCornerShape(22.dp),
+               colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
+               border = BorderStroke(2.dp, Color(0xFFFBC02D)),
+               elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
             ) {
-               Text(
-                  "✨ Quests Complete! ✨",
-                  fontWeight = FontWeight.ExtraBold,
-                  fontSize = 16.sp,
-                  color = Color(0xFFF57F17)
-               )
-               Spacer(modifier = Modifier.height(4.dp))
-               Text("Completed today's 3 habits!", fontSize = 13.sp, color = Color(0xFF5D4037))
-               Spacer(modifier = Modifier.height(12.dp))
-               Button(
-                  onClick = {
-                     userCoins += 500
-                     dailyRewardClaimed = true
-                     showRewardPopup = false
-                  },
-                  colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFBC02D)),
-                  shape = RoundedCornerShape(50)
+               Column(
+                  modifier = Modifier.padding(16.dp),
+                  horizontalAlignment = Alignment.CenterHorizontally
                ) {
                   Text(
-                     "Claim 🪙 500",
-                     color = Color.Black,
-                     fontWeight = FontWeight.Bold,
-                     fontSize = 14.sp
+                     "✨ Quests Complete! ✨",
+                     fontWeight = FontWeight.ExtraBold,
+                     fontSize = 16.sp,
+                     color = Color(0xFFF57F17)
                   )
+                  Spacer(modifier = Modifier.height(4.dp))
+                  Text("Completed today's 3 habits!", fontSize = 13.sp, color = Color(0xFF5D4037))
+                  Spacer(modifier = Modifier.height(12.dp))
+                  Button(
+                     onClick = {
+                        userCoins += 500
+                        dailyRewardClaimed = true
+                        showRewardPopup = false
+                     },
+                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFBC02D)),
+                     shape = RoundedCornerShape(50)
+                  ) {
+                     Text(
+                        "Claim 🪙 500",
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                     )
+                  }
                }
             }
          }
-      }
 
-      // News board
-      AnimatedVisibility(
-         visible = showNewsBoard,
-         modifier = Modifier.align(Alignment.TopEnd).offset(x = (-12).dp, y = 80.dp),
-         enter = expandVertically(),
-         exit = shrinkVertically()
-      ) {
-         NewsBoard(
-            newsList = newsItems,
-            onDismissItem = { id -> newsItems.removeAll { it.id == id } },
-            onClearAll = { newsItems.clear() },
-            onClose = { showNewsBoard = false })
-      }
+         // News board
+         AnimatedVisibility(
+            visible = showNewsBoard,
+            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-12).dp, y = 80.dp),
+            enter = expandVertically(),
+            exit = shrinkVertically()
+         ) {
+            NewsBoard(
+               newsList = newsItems,
+               onDismissItem = { id -> newsItems.removeAll { it.id == id } },
+               onClearAll = { newsItems.clear() },
+               onClose = { showNewsBoard = false })
+         }
 
 
-      // Avatar pie menu
-      pieMenuCenter?.let { center ->
-         AvatarPieMenu(
-            center = center,
-            items = pieMenuItems,
-            onDismiss = { pieMenuCenter = null },
-            onAddHabit = { showAddHabitDialog = true }
+         // Avatar pie menu
+         pieMenuCenter?.let { center ->
+            AvatarPieMenu(
+               center = center,
+               items = pieMenuItems,
+               onDismiss = { pieMenuCenter = null },
+               onAddHabit = { showAddHabitDialog = true }
+            )
+         }
+      } // end of !editMode
+
+      // Edit mode: top bar with Done, and the tray of owned furniture at the bottom
+      if (editMode) {
+         EditModeTopBar(
+            onDone = {
+               editMode = false
+               selectedFurnitureId = null
+            },
+            modifier = Modifier.align(Alignment.TopCenter)
+         )
+         FurnitureTray(
+            furniture = furniture,
+            onToggle = { item ->
+               furnitureScope.launch {
+                  if (item.placed) furnitureRepo.pickUp(item.localId) else furnitureRepo.place(item.localId)
+               }
+               if (item.placed && selectedFurnitureId == item.localId) selectedFurnitureId = null
+            },
+            modifier = Modifier.align(Alignment.BottomCenter)
          )
       }
    }
@@ -1414,7 +1465,8 @@ fun JetpackTopNavbar(
    onNewsClick: () -> Unit,
    onProfileClick: () -> Unit,
    onSettingsClick: () -> Unit,
-   onSyncClick: () -> Unit = {}
+   onSyncClick: () -> Unit = {},
+   onEditModeClick: () -> Unit = {}
 ) {
    var showMoreMenu by remember { mutableStateOf(false) }
 
@@ -1505,6 +1557,28 @@ fun JetpackTopNavbar(
                   onClick = {
                      showMoreMenu = false
                      onSyncClick()
+                  }
+               )
+               HorizontalDivider(
+                  modifier = Modifier.padding(horizontal = 14.dp),
+                  thickness = 1.dp,
+                  color = NavbarDivider
+               )
+               DropdownMenuItem(
+                  text = {
+                     Text(
+                        text = "Edit mode",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Ink
+                     )
+                  },
+                  leadingIcon = {
+                     Icon(Icons.Default.Edit, contentDescription = null, tint = NavbarIcon, modifier = Modifier.size(20.dp))
+                  },
+                  onClick = {
+                     showMoreMenu = false
+                     onEditModeClick()
                   }
                )
                HorizontalDivider(

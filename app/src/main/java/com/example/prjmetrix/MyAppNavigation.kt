@@ -9,6 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -40,6 +43,8 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    // true while the home screen is in edit mode, so the bottom navigation can be hidden
+    var hideBottomNav by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val profileViewModel : ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
     val authViewModel : AuthViewModel = viewModel(factory = AuthView2(context))
@@ -95,7 +100,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
         else -> "home"
     }
 
-        // Apply the user's theme and accessibility settings to the whole app
+    // Apply the user's theme and accessibility settings to the whole app
     AppTheme(
         theme = currentSettings.theme,
         fontSize = currentSettings.fontSize,
@@ -110,120 +115,121 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                 startDestination = startDestination,
                 modifier = Modifier.fillMaxSize()
             ) {
-        composable("login"){
-            LoginScreen(modifier, navController, authViewModel)
-        }
-        composable("signup"){
-            SignupScreen(modifier, navController, authViewModel)
-        }
-            composable("home") {
-                HomeScreen(
-                    onSettingsClick = { navController.navigate("settings") },
-                    onSessionExpired = {authViewModel.signOut() }
-                )
-            }
-
-        //Onboarding: welcome intro, then the profile-setup questions
-        composable  ("welcome") {
-            WelcomeScreen ( onGetStarted = { navController.navigate("survey")} )
-        }
-
-        composable ("survey") {
-            SurveyScaffold(
-                //onboarding happens for new uses, so going back signs them out again
-                onNavigateUp = { authViewModel.signOut() },
-                onFinished =  {
-                    //after onboarding the user is taken to their profile page
-                    navController.navigate("profile") {
-                        popUpTo(0) { inclusive = true }
-                    }
+                composable("login"){
+                    LoginScreen(modifier, navController, authViewModel)
                 }
-            )
-        }
-
-
-        // Profile
-        composable("profile") {
-
-            ProfileScreen(
-                profileViewModel)
-        }
-
-        //Wardrobe
-        composable("wardrobe") {
-            WardrobeScreen (
-                onPlannerClick = {
-                    navController.navigate("planner")
+                composable("signup"){
+                    SignupScreen(modifier, navController, authViewModel)
                 }
-            )
-        }
-
-        // Settings
-        composable("settings") {
-
-            SettingsScreen(
-                navController,
-                authViewModel,
-                settingsViewModel
-            )
-        }
-
-        // Language
-        composable("language") {
-
-            LanguageScreen(
-                navController
-            )
-        }
-
-        // Themes
-        composable("themes") {
-
-            ThemesScreen(
-                navController = navController,
-                currentTheme = currentSettings.theme,
-                onThemeChange = { newTheme ->
-
-                    settingsViewModel.updateTheme(newTheme)
-                }
-            )
-        }
-
-        // Accessibility
-        composable("accessibility") {
-
-            AccessibilityScreen(
-                navController = navController,
-                fontSize = currentSettings.fontSize,
-                highContrast = currentSettings.highContrast,
-
-                onFontSizeChange = { newSize ->
-
-                    settingsViewModel.updateAccessibility(
-                        fontSize = newSize,
-                        highContrast = currentSettings.highContrast
+                composable("home") {
+                    HomeScreen(
+                        onSettingsClick = { navController.navigate("settings") },
+                        onSessionExpired = {authViewModel.signOut() },
+                        //onEditModeChange = { hideBottomNav = it }
                     )
-                },
+                }
 
-                onHighContrastChange = { newContrast ->
+                //Onboarding: welcome intro, then the profile-setup questions
+                composable  ("welcome") {
+                    WelcomeScreen ( onGetStarted = { navController.navigate("survey")} )
+                }
 
-                    settingsViewModel.updateAccessibility(
+                composable ("survey") {
+                    SurveyScaffold(
+                        //onboarding happens for new uses, so going back signs them out again
+                        onNavigateUp = { authViewModel.signOut() },
+                        onFinished =  {
+                            //after onboarding the user is taken to their profile page
+                            navController.navigate("profile") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+
+
+                // Profile
+                composable("profile") {
+
+                    ProfileScreen(
+                        profileViewModel)
+                }
+
+                //Wardrobe
+                composable("wardrobe") {
+                    WardrobeScreen (
+                        onPlannerClick = {
+                            navController.navigate("planner")
+                        }
+                    )
+                }
+
+                // Settings
+                composable("settings") {
+
+                    SettingsScreen(
+                        navController,
+                        authViewModel,
+                        settingsViewModel
+                    )
+                }
+
+                // Language
+                composable("language") {
+
+                    LanguageScreen(
+                        navController
+                    )
+                }
+
+                // Themes
+                composable("themes") {
+
+                    ThemesScreen(
+                        navController = navController,
+                        currentTheme = currentSettings.theme,
+                        onThemeChange = { newTheme ->
+
+                            settingsViewModel.updateTheme(newTheme)
+                        }
+                    )
+                }
+
+                // Accessibility
+                composable("accessibility") {
+
+                    AccessibilityScreen(
+                        navController = navController,
                         fontSize = currentSettings.fontSize,
-                        highContrast = newContrast
+                        highContrast = currentSettings.highContrast,
+
+                        onFontSizeChange = { newSize ->
+
+                            settingsViewModel.updateAccessibility(
+                                fontSize = newSize,
+                                highContrast = currentSettings.highContrast
+                            )
+                        },
+
+                        onHighContrastChange = { newContrast ->
+
+                            settingsViewModel.updateAccessibility(
+                                fontSize = currentSettings.fontSize,
+                                highContrast = newContrast
+                            )
+                        }
                     )
                 }
-            )
-        }
-        composable("journalcover") {
-            JournalCover(onOpenJournal = { navController.navigate("journallist") })
-        }
-        composable("journallist") {
-            JournalList(
-                onBack = { navController.popBackStack() },
-                onWriteEntry = { navController.navigate("journalentry") },
-                onEditEntry = { id -> navController.navigate("journalentry?entryId=$id") }
-            )
-        }
+                composable("journalcover") {
+                    JournalCover(onOpenJournal = { navController.navigate("journallist") })
+                }
+                composable("journallist") {
+                    JournalList(
+                        onBack = { navController.popBackStack() },
+                        onWriteEntry = { navController.navigate("journalentry") },
+                        onEditEntry = { id -> navController.navigate("journalentry?entryId=$id") }
+                    )
+                }
                 composable(
                     route = "journalentry?entryId={entryId}",
                     arguments = listOf(navArgument("entryId") {
@@ -240,10 +246,11 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
             }
 
             if (
-                currentRoute == "home" ||
-                currentRoute == "wardrobe" ||
-                currentRoute == "journalcover" ||
-                currentRoute == "profile"
+                !hideBottomNav &&
+                (currentRoute == "home" ||
+                        currentRoute == "wardrobe" ||
+                        currentRoute == "journalcover" ||
+                        currentRoute == "profile")
             ) {
                 Box(
                     modifier = Modifier
