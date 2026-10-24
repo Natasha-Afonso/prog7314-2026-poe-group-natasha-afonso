@@ -242,7 +242,9 @@ fun HabitItemDto.toTodo(linkedToCircle: Boolean) = TodoItem(
 @Composable
 fun HomeScreen(
    onSettingsClick: () -> Unit ={},
-   onSessionExpired: () -> Unit = {}
+   onMagazineClick: () -> Unit = {},
+   onQuizClick: () -> Unit = {},
+   onSessionExpired: () -> Unit = {},
 ) {
    val context = LocalContext.current
    val scope = rememberCoroutineScope()
@@ -386,6 +388,25 @@ fun HomeScreen(
       selectedMood = prefs.getString("mood_${LocalDate.now()}", null)
    }
 
+   //Once per week, drop a "your magazine is ready" note on the news board
+   LaunchedEffect(Unit) {
+      val weekKey = LocalDate.now()
+         .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+         .toString()
+      if (prefs.getString("magazine_notified_week", null) != weekKey) {
+         prefs.edit().putString("magazine_notified_week", weekKey).apply()
+         newsItems.add(
+            0,
+            NavigationItem(
+               id = "magazine_$weekKey",
+               title = "YOUR WEEKLY MAGAZINE",
+               message = "See your goals, outfits and reflections. Open the menu (⋮) > Weekly Magazine.",
+               type = NotificationType.MILESTONE
+            )
+         )
+      }
+   }
+
    val refreshSteps: () -> Unit = {
       scope.launch {
          try {
@@ -513,7 +534,9 @@ fun HomeScreen(
             showNewsBoard = !showNewsBoard
          },
          onProfileClick = { },
-         onSettingsClick = onSettingsClick
+         onSettingsClick = onSettingsClick,
+         onMagazineClick = onMagazineClick,
+         onQuizClick = onQuizClick
       )
 
       // SINGLE ALL-IN-ONE QUEST & HABITS CONTAINER
@@ -1379,7 +1402,9 @@ fun JetpackTopNavbar(
    onTodoClick: () -> Unit,
    onNewsClick: () -> Unit,
    onProfileClick: () -> Unit,
-   onSettingsClick: () -> Unit
+   onSettingsClick: () -> Unit,
+   onMagazineClick: () -> Unit = {},
+   onQuizClick: () -> Unit = {}
 ) {
    var showMoreMenu by remember { mutableStateOf(false) }
 
@@ -1443,6 +1468,44 @@ fun JetpackTopNavbar(
                   modifier = Modifier.size(19.dp)
                )
             }
+
+            DropdownMenu(
+               expanded = showMoreMenu,
+               onDismissRequest = { showMoreMenu = false }
+            ) {
+               DropdownMenuItem(
+                  text = {
+                     Text(
+                        text = "Weekly Magazine",
+                        fontSize = 12.sp
+                     )
+                  },
+                  onClick = {
+                     showMoreMenu = false
+                     onMagazineClick()
+                  }
+               )
+            }
+
+            DropdownMenu(
+               expanded = showMoreMenu,
+               onDismissRequest = { showMoreMenu = false }
+            ) {
+               DropdownMenuItem(
+                  text = {
+                     Text(
+                        text = "Self-care check-in",
+                        fontSize = 12.sp
+                     )
+                  },
+                  onClick = {
+                     showMoreMenu = false
+                     onQuizClick()
+                  }
+               )
+            }
+
+
 
             DropdownMenu(
                expanded = showMoreMenu,

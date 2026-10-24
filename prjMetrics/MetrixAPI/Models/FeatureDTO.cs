@@ -12,7 +12,7 @@ public record CalendarEventDto(DateOnly Date, string Title, string Type, int? Ou
 public record WearLogDto(DateOnly Date, int OutfitId, string OutfitName, bool AcceptedSuggestion, List<OutfitItemDto> Items);
 public record SelfCareQuizDto(int Id, DateTime CreatedAt, int Score, string Reflection);
 
-
+public record ClothingItemRequest(string Name, string Category, string? ImageUrl);
 public record MagazineDto(
     DateOnly WeekStart,
     DateOnly WeekEnd,

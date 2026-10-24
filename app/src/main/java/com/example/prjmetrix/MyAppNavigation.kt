@@ -33,6 +33,10 @@ import com.example.prjmetrix.pages.ProfileScreen
 import com.example.prjmetrix.pages.SurveyScaffold
 import com.example.prjmetrix.pages.WelcomeScreen
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.prjmetrix.pages.MagazineScreen
+import com.example.prjmetrix.pages.PlannerScreen
+import com.example.prjmetrix.pages.SelfCareQuizScreen
+
 //(Easy Tuto, 2024)
 @Composable
 fun MyAppNavigation(modifier: Modifier = Modifier) {
@@ -119,6 +123,8 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
             composable("home") {
                 HomeScreen(
                     onSettingsClick = { navController.navigate("settings") },
+                    onMagazineClick = {navController.navigate("magazine")},
+                    onQuizClick = { navController.navigate("selfcarequiz")},
                     onSessionExpired = {authViewModel.signOut() }
                 )
             }
@@ -157,6 +163,24 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                 }
             )
         }
+
+                //Outfit calendar (birthday, holidays, planned outfits)
+                composable("planner") {
+                    PlannerScreen(onBackClick = { navController.popBackStack() })
+                }
+
+                //Weekly magazine
+                composable("magazine") {
+                    MagazineScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onTakeQuiz = { navController.navigate("selfcarequiz") }
+                    )
+                }
+
+                //Self-care check-in quiz
+                composable("selfcarequiz") {
+                    SelfCareQuizScreen(onBackClick = { navController.popBackStack() })
+                }
 
         // Settings
         composable("settings") {
