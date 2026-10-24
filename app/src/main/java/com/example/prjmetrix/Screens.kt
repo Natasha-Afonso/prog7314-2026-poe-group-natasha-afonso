@@ -23,6 +23,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DirectionsRun
@@ -57,6 +59,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -82,10 +86,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -96,6 +102,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -109,6 +116,12 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.math.abs
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.filled.CardGiftcard
@@ -130,7 +143,7 @@ import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.LocalTime
 
-// DATA MODELS
+// Data models used to display habits, to-dos and notifications.
 data class HabitCircle(
    val id: String,
    val label: String,
@@ -151,14 +164,21 @@ data class NavigationItem(
    val id: String,
    val title: String,
    val message: String,
-   val type: NotificationType,//eg reward , outfit reccommendations, avatar messsages
+   val type: NotificationType,// e.g. rewards, alerts and avatar messages
    val timestamp: String ="Just now"
 )
 
 private  const val FALLBACK_STEP_GOAL = 6000
 
-// ROOM BACKGROUND
+// Room background
 val roomBackgrounds = listOf(R.drawable.img_10)
+
+// Shared colours used across the screen.
+private val Ink = Color(0xFF43302E)
+private val InkSoft = Color(0xFF8D6E63)
+private val Accent = Color(0xFF0284C7)
+private val GlassWhite = Color.White.copy(alpha = 0.94f)
+private val CardBorder = Color(0xFFE7B4BE)
 
 private fun timeGreeting(): String = when (LocalTime.now().hour) {
    in 5..11 -> "Good Morning"
@@ -167,7 +187,7 @@ private fun timeGreeting(): String = when (LocalTime.now().hour) {
    else -> "Hello"
 }
 
-// MOOD HELPERS — maps the picked emoji to a happiness score + label for the mood card
+// Converts the selected mood emoji into a score.
 private fun moodScore(emoji: String): Float = when (emoji) {
    "😍", "😆" -> 1f
    "😃", "😎" -> 0.8f
@@ -184,14 +204,22 @@ private fun moodLabel(score: Float): String = when {
    else -> "HAPPINESS: HAVING A ROUGH DAY"
 }
 
+// Chooses a colour based on the mood score.
+private fun moodColor(score: Float): Color = when {
+   score >= 0.8f -> Color(0xFF4CAF50)
+   score >= 0.5f -> Color(0xFF9CCC65)
+   score >= 0.25f -> Color(0xFFFFB74D)
+   else -> Color(0xFFE57373)
+}
+
 data class PieMenuItem(
    val id: String,
    val icon: ImageVector,
    val label: String,
    val color: Color,
-   val onSelect: () -> Unit
+   val onSelect: () -> Unit,
+   val progress: Float = 0f // shown on the habit pill once progress is above 0
 )
-
 
 
 enum class NotificationType {
@@ -239,6 +267,24 @@ fun HabitItemDto.toTodo(linkedToCircle: Boolean) = TodoItem(
    done = progress >= 1f,
    habitId = if (linkedToCircle) id.toString() else null
 )
+
+// Maps Room habits to the same UI models used for API habits.
+
+fun HabitEntity.toCircle(today: String) = HabitCircle(
+   id = localId.toString(),
+   label = label,
+   icon = iconForKey(iconKey),
+   progress = if (progressDate == today) progress else 0f,
+   color = colorFromHex(colorHex)
+)
+
+fun HabitEntity.toTodo(linkedToCircle: Boolean, today: String) = TodoItem(
+   id = localId.toString(),
+   label = label,
+   coinReward = goldCoins,
+   done = (if (progressDate == today) progress else 0f) >= 1f,
+   habitId = if (linkedToCircle) localId.toString() else null
+)
 @Composable
 fun HomeScreen(
    onSettingsClick: () -> Unit ={},
@@ -248,9 +294,9 @@ fun HomeScreen(
    val scope = rememberCoroutineScope()
    val density = LocalDensity.current
 
-   // PROFILE / AVATAR
-   // Same ViewModel + factory ProfileScreen uses, so Home always reflects whatever
-   // was last saved on the Profile screen.
+   // Profile and avatar
+   // Uses the same ViewModel as the Profile screen, so saved changes appear here too.
+
    val profileViewModel: ProfileViewModel = viewModel(
       factory = ProfileViewModelFactory(context)
    )
@@ -272,86 +318,75 @@ fun HomeScreen(
       }
    }
 
-   // STATE
+   // Screen state
    var userCoins by remember { mutableIntStateOf(1250) }
    var showNewsBoard by remember { mutableStateOf(false) }
    val newsItems = remember {mutableStateListOf(*sampleNewList.toTypedArray())}
-   // QUEST CARD VISIBILITY & EXPANSION STATES
+   // Quest card visibility and expansion
    var isQuestCardVisible by remember { mutableStateOf(true) }
    var isQuestCardExpanded by remember { mutableStateOf(false) }
+   val questScroll = rememberScrollState()
 
    var showAddHabitDialog by remember { mutableStateOf(false) }
    var newHabitText by remember { mutableStateOf("") }
-   var selectedMood by remember { mutableStateOf<String?>(null) }
    var avatarRootPosition by remember { mutableStateOf(Offset.Zero) }
    var pieMenuCenter by remember { mutableStateOf<Offset?>(null) }
 
    var dailyRewardClaimed by remember { mutableStateOf(false) }
    var showRewardPopup by remember { mutableStateOf(false) }
 
-   val habitCircles = remember { mutableStateListOf<HabitCircle>() }
-
-   val todos = remember { mutableStateListOf<TodoItem>() }
+   // Habits (offline-first)
 
 
-   // Auto-check sync when habit reaches 100%
-   LaunchedEffect(habitCircles.map { it.progress }) {
-      habitCircles.forEach { habit ->
-         if (habit.progress >= 1f) {
-            val index = todos.indexOfFirst { it.habitId == habit.id }
-            if (index != -1 && !todos[index].done) {
-               todos[index] = todos[index].copy(done = true)
-            }
-         }
-      }
+   // Room supplies the habit list and updates the screen when the table changes, even offline.
+   val habitRepo = remember { OfflineHabitRepository(context.applicationContext) }
+   val habitEntities by habitRepo.observeHabits().collectAsState(initial = emptyList())
+   val todayString = remember { LocalDate.now().toString() }
+
+   val habitCircles = remember(habitEntities) {
+      habitEntities.take(3).map { it.toCircle(todayString) }
    }
 
-   val habitApi = remember { HabitRepository(context).api }
-
-   suspend fun loadHabits() {
-      try {
-         val response = habitApi.getHabits(LocalDate.now().toString())
-         if (response.isSuccessful) {
-            val habits = response.body().orEmpty()
-            habitCircles.clear()
-            habitCircles.addAll(habits.take(3).map { it.toCircle() })
-            todos.clear()
-            todos.addAll(habits.mapIndexed { i, h -> h.toTodo(linkedToCircle = i < 3) })
-         } else {
-            Log.e("Habits", "Load failed: ${response.code()}")
-            if (response.code() == 401) onSessionExpired()
-         }
-      } catch (e: Exception) {
-         Log.e("Habits", "Could not reach the API", e)
-      }
+   val todos = remember(habitEntities) {
+      habitEntities.mapIndexed { i, h -> h.toTodo(linkedToCircle = i < 3, today = todayString) }
    }
 
-   val saveProgress: (String, Float) -> Unit = { habitId, progress ->
+
+
+
+
+   // Tracks whether the last sync worked; habits still work locally when offline.
+   var syncStatus by remember { mutableStateOf(SyncResult.OK) }
+
+   // Uploads pending changes and fetches the latest habits.
+   val syncHabits: () -> Unit = {
       scope.launch {
-         try {
-            val response = habitApi.updateProgress(
-               habitId.toInt(), progress, LocalDate.now().toString()
-            )
-            if (!response.isSuccessful) Log.e("Habits", "Save failed: ${response.code()}")
-         } catch (e: Exception) {
-            Log.e("Habits", "Could not save progress", e)
-         }
+         val result = habitRepo.sync()
+         syncStatus = result
+         if (result == SyncResult.SESSION_EXPIRED) onSessionExpired()
       }
    }
 
-   // Bumps a habit's progress by 25% per interaction (tapping the liquid circle, or
-   // picking it from the avatar's pie menu) instead of snapping straight to 100% the
-   // moment you touch it.
+   // Saves progress locally first, then syncs it with the API.
+   val saveProgress: (String, Float) -> Unit = { habitId, progress ->
+      scope.launch { habitRepo.setProgress(habitId.toInt(), progress) }
+   }
+
+
+
+   // Each interaction adds 25% progress instead of completing the habit straight away.
    val bumpHabitProgress: (Int) -> Unit = { index ->
       val habit = habitCircles[index]
       val newProg = (habit.progress + 0.25f).coerceAtMost(1f)
-      habitCircles[index] = habit.copy(progress = newProg)
       saveProgress(habit.id, newProg)
    }
 
-   LaunchedEffect(Unit) { loadHabits() }
+   // Adds 25% progress using the habit ID, including habits outside the three circles.
+   val bumpHabitById: (String, Float) -> Unit = { habitId, currentProgress ->
+      saveProgress(habitId, (currentProgress + 0.25f).coerceAtMost(1f))
+   }
 
-   // Pinned top 3 daily habits
+   // The first three habits are shown as the daily pinned habits.
    val pinnedHabits = todos.take(3)
    val otherHabits = todos.drop(3)
    val allPinnedDone = pinnedHabits.isNotEmpty() && pinnedHabits.all { it.done }
@@ -363,14 +398,16 @@ fun HomeScreen(
    }
 
 
-
-   val pieMenuItems = habitCircles.mapIndexed { index, habit ->
+   // The avatar menu can show up to six habits.
+   val pieMenuItems = habitEntities.take(6).map { entity ->
+      val habit = entity.toCircle(todayString)
       PieMenuItem(
          id = habit.id,
          icon = habit.icon,
          label = habit.label,
          color = habit.color,
-         onSelect = { bumpHabitProgress(index) }
+         onSelect = { bumpHabitById(habit.id, habit.progress) },
+         progress = habit.progress
       )
    }
 
@@ -381,11 +418,6 @@ fun HomeScreen(
    var prefs = remember {context.getSharedPreferences("metrix_prefs", Context.MODE_PRIVATE)}
    var greetingShown by remember { mutableStateOf(false) }
 
-   // Load today's saved mood (if any) once prefs is available
-   LaunchedEffect(Unit) {
-      selectedMood = prefs.getString("mood_${LocalDate.now()}", null)
-   }
-
    val refreshSteps: () -> Unit = {
       scope.launch {
          try {
@@ -395,7 +427,7 @@ fun HomeScreen(
                val goal = stepsRepo.readStepGoal().takeIf { it > 0 } ?: FALLBACK_STEP_GOAL
                todaySteps = steps
 
-               // Greeting: once per app launch
+               // Shows the step greeting once per app launch.
                if (!greetingShown) {
                   greetingShown = true
                   newsItems.add(
@@ -409,7 +441,7 @@ fun HomeScreen(
                   )
                }
 
-               // Goal milestone: once per day, even across app restarts
+               // Saves the date so the goal notification only appears once a day.
                val today = LocalDate.now().toString()
                if (steps >= goal && prefs.getString("goal_notified_date", null) != today) {
                   prefs.edit().putString("goal_notified_date", today).apply()
@@ -430,8 +462,12 @@ fun HomeScreen(
       }
    }
 
-// Runs on first launch and every time the app returns to the foreground
+// Refreshes steps when the app opens or returns to the foreground.
    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { refreshSteps() }
+
+
+   // Syncs habits on launch and whenever the app returns to the foreground.
+   LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { syncHabits() }
 
    val todayDateString = remember {
       SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date())
@@ -439,7 +475,7 @@ fun HomeScreen(
 
    Box(modifier = Modifier.fillMaxSize()) {
 
-      // Background
+      // Room background
       Image(
          painter = painterResource(id = roomBackgrounds[0]),
          contentDescription = "Room background",
@@ -447,7 +483,7 @@ fun HomeScreen(
          contentScale = ContentScale.FillHeight
       )
 
-      // Avatar Shadow
+      // Shadow under the avatar
       Box(
          modifier = Modifier
             .width(90.dp).height(16.dp)
@@ -456,8 +492,8 @@ fun HomeScreen(
             .background(Color.Black.copy(alpha = 0.18f))
       )
 
-      // Avatar Layer — drawn from the same profile data as the Profile screen, so
-      // hair/eyes/lips/body picked there show up here automatically.
+
+      // Uses the same avatar parts selected on the Profile screen.
       AvatarView(
          layers = avatarLayers,
          modifier = Modifier
@@ -481,7 +517,7 @@ fun HomeScreen(
          contentScale = ContentScale.Fit
       )
 
-      // LIQUID HABIT CIRCLES
+      // Liquid habit circles
       Column(
          modifier = Modifier.align(Alignment.TopEnd).offset(x = (-16).dp, y = 210.dp),
          verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -498,7 +534,7 @@ fun HomeScreen(
          }
       }
 
-      // TOP APP BAR
+      // Top app bar
       JetpackTopNavbar(
          coins = userCoins,
          todoCount = todos.count { !it.done },
@@ -506,36 +542,60 @@ fun HomeScreen(
          hasUnreadNews = newsItems.isNotEmpty(),
          newsBoardOpen = showNewsBoard,
          onTodoClick = {
-            // Toggle visibility on menu button tap
+            // Opens or hides the quest card.
             isQuestCardVisible = !isQuestCardVisible
          },
          onNewsClick = {
             showNewsBoard = !showNewsBoard
          },
          onProfileClick = { },
-         onSettingsClick = onSettingsClick
+         onSettingsClick = onSettingsClick,
+         onSyncClick = syncHabits
       )
 
-      // SINGLE ALL-IN-ONE QUEST & HABITS CONTAINER
+      // Shows when the API is unavailable; habits are still saved locally.
+      AnimatedVisibility(
+         visible = syncStatus == SyncResult.OFFLINE,
+         modifier = Modifier
+            .align(Alignment.TopCenter)
+            .statusBarsPadding()
+            .padding(top = 62.dp),
+         enter = expandVertically(),
+         exit = shrinkVertically()
+      ) {
+         Row(
+            modifier = Modifier
+               .clip(RoundedCornerShape(50))
+               .background(Color(0xFF37474F).copy(alpha = 0.88f))
+               .padding(horizontal = 12.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically
+         ) {
+            Icon(Icons.Default.CloudOff, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("Offline · saved on this phone", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+         }
+      }
+
+      // Quest and habits card
       AnimatedVisibility(
          visible = isQuestCardVisible,
          modifier = Modifier
             .align(Alignment.TopStart)
-            .offset(x = 8.dp, y = 110.dp),
+            .offset(x = 10.dp, y = 110.dp),
          enter = expandVertically(),
          exit = shrinkVertically()
       ) {
          Card(
             modifier = Modifier
-               .width(165.dp)
-               .heightIn(max = if (isQuestCardExpanded) 270.dp else Dp.Unspecified),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
-            border = BorderStroke(1.5.dp, Color(0xFFE7B4BE)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+               .width(188.dp)
+               .heightIn(max = if (isQuestCardExpanded) 340.dp else Dp.Unspecified),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = GlassWhite),
+            border = BorderStroke(1.dp, CardBorder),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
          ) {
-            Column(modifier = Modifier.padding(8.dp)) {
-               // Header Row with Title and Close (X) Button
+            Column(modifier = Modifier.padding(12.dp)) {
+               // Card header and close button
                Row(
                   modifier = Modifier.fillMaxWidth(),
                   verticalAlignment = Alignment.CenterVertically,
@@ -545,12 +605,12 @@ fun HomeScreen(
                      Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                            text = todayDateString,
-                           fontSize = 8.sp,
+                           fontSize = 10.sp,
                            fontWeight = FontWeight.Bold,
-                           color = Color(0xFF8D6E63),
+                           color = InkSoft,
                            maxLines = 1
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         StepsChip(
                            steps = todaySteps,
                            hasPermission = stepsPermissionGranted,
@@ -567,149 +627,171 @@ fun HomeScreen(
                            }
                         )
                      }
+                     Spacer(modifier = Modifier.height(2.dp))
                      Text(
                         text = "Today's Quests",
-                        fontSize = 10.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF43302E)
+                        color = Ink
                      )
                   }
 
-                  // Dismiss X Button
+                  // Close the quest card.
                   IconButton(
                      onClick = { isQuestCardVisible = false },
-                     modifier = Modifier.size(16.dp)
+                     modifier = Modifier.size(22.dp)
                   ) {
                      Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close Quests",
-                        tint = Color(0xFF8D6E63)
+                        tint = InkSoft,
+                        modifier = Modifier.size(16.dp)
                      )
                   }
                }
 
-               Spacer(modifier = Modifier.height(4.dp))
+               // Shows progress for the three pinned habits.
+               Spacer(modifier = Modifier.height(8.dp))
+               Row(verticalAlignment = Alignment.CenterVertically) {
+                  LinearProgressIndicator(
+                     progress = {
+                        if (pinnedHabits.isEmpty()) 0f
+                        else pinnedHabits.count { it.done } / pinnedHabits.size.toFloat()
+                     },
+                     color = Color(0xFF66BB6A),
+                     trackColor = Color(0xFFE8EAED),
+                     modifier = Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(50))
+                  )
+                  Spacer(modifier = Modifier.width(8.dp))
+                  Text(
+                     text = "${pinnedHabits.count { it.done }}/${pinnedHabits.size}",
+                     fontSize = 11.sp,
+                     fontWeight = FontWeight.Bold,
+                     color = InkSoft
+                  )
+               }
 
-               // SCROLLABLE CONTAINER (Active when expanded)
+               Spacer(modifier = Modifier.height(6.dp))
+
+               // The list scrolls when the card is expanded.
                Column(
                   modifier = Modifier
                      .weight(1f, fill = false)
-                     .then(if (isQuestCardExpanded) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                     .then(if (isQuestCardExpanded) Modifier.verticalScroll(questScroll) else Modifier)
                ) {
-                  // Top 3 Daily Habits
+                  if (pinnedHabits.isEmpty()) {
+                     Text(
+                        text = "No habits yet. Open the list below to add your first one.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF90A4AE),
+                        modifier = Modifier.padding(vertical = 6.dp)
+                     )
+                  }
+
+                  // Show the three pinned habits.
                   pinnedHabits.forEach { item ->
-                     val origIndex = todos.indexOf(item)
                      TodoRow(item = item, onToggle = {
-                        if (origIndex != -1) {
-                           val updated = !todos[origIndex].done
-                           todos[origIndex] = todos[origIndex].copy(done = updated)
-                           saveProgress(item.id, if (updated) 1f else 0f)
-                           todos[origIndex].habitId?.let { hId ->
-                              val hIndex = habitCircles.indexOfFirst { it.id == hId }
-                              if (hIndex != -1) {
-                                 habitCircles[hIndex] =
-                                    habitCircles[hIndex].copy(progress = if (updated) 1f else 0f)
-                              }
-                           }
-                        }
+                        val updated = !item.done
+                        saveProgress(item.id, if (updated) 1f else 0f)
                      })
+                  }
+
+                  // Show the remaining habits when expanded.
+                  if (isQuestCardExpanded) {
+                     Spacer(modifier = Modifier.height(6.dp))
+                     HorizontalDivider(thickness = 1.dp, color = Color(0xFFE0E0E0))
+                     Spacer(modifier = Modifier.height(8.dp))
+
+                     Text(
+                        text = "ALL HABITS",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF9E9E9E),
+                        modifier = Modifier.padding(bottom = 2.dp)
+                     )
+
+                     otherHabits.forEach { item ->
+                        TodoRow(item = item, onToggle = {
+                           val updated = !item.done
+                           saveProgress(item.id, if (updated) 1f else 0f)
+                        })
+                     }
+
+                     Spacer(modifier = Modifier.height(6.dp))
+
+                     // Opens the add-habit dialog.
+                     Row(
+                        modifier = Modifier
+                           .fillMaxWidth()
+                           .height(34.dp)
+                           .clip(RoundedCornerShape(10.dp))
+                           .background(Accent.copy(alpha = 0.08f))
+                           .clickable { showAddHabitDialog = true },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                     ) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Accent, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add habit", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Accent)
+                     }
                   }
                }
 
-               // EXPANDED PORTION: Divider + Remaining Habits
-               if (isQuestCardExpanded) {
-                  Spacer(modifier = Modifier.height(6.dp))
-                  HorizontalDivider(thickness = 1.dp, color = Color(0xFFE0E0E0))
-                  Spacer(modifier = Modifier.height(6.dp))
+               Spacer(modifier = Modifier.height(6.dp))
 
+               // Expands or collapses the habit list.
+               Row(
+                  modifier = Modifier
+                     .fillMaxWidth()
+                     .clickable { isQuestCardExpanded = !isQuestCardExpanded }
+                     .padding(vertical = 2.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.Center
+               ) {
                   Text(
-                     text = "ALL HABITS",
-                     fontSize = 8.sp,
-                     fontWeight = FontWeight.Black,
-                     color = Color(0xFF9E9E9E),
-                     modifier = Modifier.padding(bottom = 2.dp)
+                     text = if (isQuestCardExpanded) "Show Less" else "View All Habits",
+                     fontSize = 12.sp,
+                     fontWeight = FontWeight.Bold,
+                     color = Accent
                   )
-
-                  otherHabits.forEach { item ->
-                     val origIndex = todos.indexOf(item)
-                     TodoRow(item = item, onToggle = {
-                        if (origIndex != -1) {
-                           val updated = !todos[origIndex].done
-                           todos[origIndex] = todos[origIndex].copy(done = updated)
-                           saveProgress(item.id, if (updated) 1f else 0f)
-                        }
-                     })
-                  }
-
-                  Spacer(modifier = Modifier.height(6.dp))
-
-                  // Add Habit Trigger inside list
-                  Row(
-                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .clickable { showAddHabitDialog = true },
-                     verticalAlignment = Alignment.CenterVertically,
-                     horizontalArrangement = Arrangement.Center
-                  ) {
-                     Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(11.dp))
-                     Spacer(modifier = Modifier.width(3.dp))
-                     Text("Add habit", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                  }
+                  Icon(
+                     imageVector = if (isQuestCardExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                     contentDescription = null,
+                     tint = Accent,
+                     modifier = Modifier.size(16.dp)
+                  )
                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Expand / Collapse Trigger
-            Row(
-               modifier = Modifier
-                  .fillMaxWidth()
-                  .clickable { isQuestCardExpanded = !isQuestCardExpanded },
-               verticalAlignment = Alignment.CenterVertically,
-               horizontalArrangement = Arrangement.Center
-            ) {
-               Text(
-                  text = if (isQuestCardExpanded) "Show Less" else "View All Habits",
-                  fontSize = 8.5.sp,
-                  fontWeight = FontWeight.Bold,
-                  color = Color(0xFF0284C7)
-               )
-               Icon(
-                  imageVector = if (isQuestCardExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                  contentDescription = null,
-                  tint = Color(0xFF0284C7),
-                  modifier = Modifier.size(11.dp)
-               )
             }
          }
       }
 
-      // REWARD CLAIM POPUP
+      // Reward popup
       if (showRewardPopup) {
          Card(
             modifier = Modifier
-               .width(180.dp)
-               .align(Alignment.TopStart)
-               .offset(x = 8.dp, y = 250.dp),
-            shape = RoundedCornerShape(14.dp),
+               .width(230.dp)
+               .align(Alignment.Center),
+            shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
             border = BorderStroke(2.dp, Color(0xFFFBC02D)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
          ) {
             Column(
-               modifier = Modifier.padding(10.dp),
+               modifier = Modifier.padding(16.dp),
                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                Text(
                   "✨ Quests Complete! ✨",
                   fontWeight = FontWeight.ExtraBold,
-                  fontSize = 10.sp,
+                  fontSize = 16.sp,
                   color = Color(0xFFF57F17)
                )
-               Spacer(modifier = Modifier.height(2.dp))
-               Text("Completed today's 3 habits!", fontSize = 8.5.sp, color = Color(0xFF5D4037))
-               Spacer(modifier = Modifier.height(6.dp))
+               Spacer(modifier = Modifier.height(4.dp))
+               Text("Completed today's 3 habits!", fontSize = 13.sp, color = Color(0xFF5D4037))
+               Spacer(modifier = Modifier.height(12.dp))
                Button(
                   onClick = {
                      userCoins += 500
@@ -723,14 +805,14 @@ fun HomeScreen(
                      "Claim 🪙 500",
                      color = Color.Black,
                      fontWeight = FontWeight.Bold,
-                     fontSize = 9.5.sp
+                     fontSize = 14.sp
                   )
                }
             }
          }
       }
 
-      // NEWS BOARD
+      // News board
       AnimatedVisibility(
          visible = showNewsBoard,
          modifier = Modifier.align(Alignment.TopEnd).offset(x = (-12).dp, y = 80.dp),
@@ -744,116 +826,32 @@ fun HomeScreen(
             onClose = { showNewsBoard = false })
       }
 
-      // BOTTOM CARD — MOOD
-      Card(
-         modifier = Modifier
-            .fillMaxWidth().height(180.dp)
-            .padding(horizontal = 14.dp)
-            .align(Alignment.BottomCenter)
-            .navigationBarsPadding()
-            .offset(y = (-10).dp),
-         shape = RoundedCornerShape(18.dp),
-         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
-         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-      ) {
-         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-               .padding(12.dp)
-         ) {
-            Row(
-               modifier = Modifier.fillMaxWidth(),
-               verticalAlignment = Alignment.CenterVertically
-            ) {
-               Text(
-                  text = if (selectedMood == null) "ADD YOUR MOOD" else moodLabel(moodScore(selectedMood!!)),
-                  fontSize = 12.sp,
-                  fontWeight = FontWeight.ExtraBold,
-                  color = Color(0xFF43302E),
-                  modifier = Modifier.weight(1f)
-               )
-               Icon(
-                  Icons.Default.KeyboardArrowUp,
-                  contentDescription = null,
-                  tint = Color(0xFF64748B)
-               )
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (selectedMood != null) {
-               LinearProgressIndicator(
-                  progress = { moodScore(selectedMood!!) },
-                  color = Color(0xFF00BCD4),
-                  modifier = Modifier.fillMaxWidth().height(9.dp)
-               )
-               Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            Row(
-               modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-               horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-               listOf("😃", "😔", "😐", "😍", "😆", "😎", "😶", "😡").forEach { emoji ->
-                  Card(
-                     modifier = Modifier.size(36.dp),
-                     shape = RoundedCornerShape(9.dp),
-                     colors = CardDefaults.cardColors(
-                        containerColor = if (emoji == selectedMood) Color(0xFFB2EBF2) else Color(
-                           0xFFE2E8F0
-                        )
-                     ),
-                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                     border = if (emoji == selectedMood) BorderStroke(
-                        1.5.dp,
-                        Color(0xFF00BCD4)
-                     ) else null
-                  ) {
-                     Box(
-                        modifier = Modifier.fillMaxSize().clickable {
-                           selectedMood = emoji
-                           // Persist today's mood so it survives navigating away / app restart
-                           prefs.edit().putString("mood_${LocalDate.now()}", emoji).apply()
-                        },
-                        contentAlignment = Alignment.Center
-                     ) {
-                        Text(text = emoji, fontSize = 17.sp)
-                     }
-                  }
-               }
-            }
-
-            if (selectedMood == null) {
-               Spacer(modifier = Modifier.height(8.dp))
-               Text(
-                  text = "Tap an emoji to log today's mood",
-                  fontSize = 10.sp,
-                  color = Color(0xFF90A4AE)
-               )
-            }
-         }
-      }
-
-      // AVATAR PIE MENU
+      // Avatar pie menu
       pieMenuCenter?.let { center ->
          AvatarPieMenu(
             center = center,
             items = pieMenuItems,
-            onDismiss = { pieMenuCenter = null }
+            onDismiss = { pieMenuCenter = null },
+            onAddHabit = { showAddHabitDialog = true }
          )
       }
    }
 
-   // ADD HABIT DIALOG
+   // Add habit dialog
    if (showAddHabitDialog) {
       AlertDialog(
          onDismissRequest = { showAddHabitDialog = false; newHabitText = "" },
-         title = { Text("New habit") },
+         shape = RoundedCornerShape(24.dp),
+         containerColor = Color.White,
+         title = { Text("New habit", fontWeight = FontWeight.ExtraBold, color = Ink) },
          text = {
             OutlinedTextField(
                value = newHabitText,
                onValueChange = { newHabitText = it },
                placeholder = { Text("e.g. Read for 10 minutes") },
                singleLine = true,
+               shape = RoundedCornerShape(14.dp),
                keyboardOptions = KeyboardOptions.Default
             )
          },
@@ -861,21 +859,15 @@ fun HomeScreen(
             TextButton(onClick = {
                val label = newHabitText.trim()
                if (label.isNotBlank()) {
+                  // Saves the new habit locally first, then syncs it with the API.
                   scope.launch {
-                     try {
-                        val response = habitApi.createHabit(
-                           HabitItemDto( label = label)
-                        )
-                        if (response.isSuccessful) loadHabits()
-                        else Log.e("Habits", "Create failed: ${response.code()}")
-                     } catch (e: Exception) {
-                        Log.e("Habits", "Could not create habit", e)
-                     }
+                     habitRepo.addHabit(label)
+                     syncHabits()
                   }
                }
                newHabitText = ""
                showAddHabitDialog = false
-            }) { Text("Add") }
+            }) { Text("Add", fontWeight = FontWeight.Bold) }
          },
          dismissButton = {
             TextButton(onClick = { showAddHabitDialog = false; newHabitText = "" }) { Text("Cancel") }
@@ -884,7 +876,7 @@ fun HomeScreen(
    }
 }
 
-// LIQUID FILL HABIT CIRCLE
+// Habit circle with animated liquid progress.
 @Composable
 fun LiquidHabitCircle(
    label: String,
@@ -912,6 +904,7 @@ fun LiquidHabitCircle(
       Box(
          modifier = Modifier
             .size(64.dp)
+            .shadow(6.dp, CircleShape)
             .clip(CircleShape)
             .background(Color.White)
             .border(2.dp, liquidColor.copy(alpha = 0.55f), CircleShape)
@@ -966,62 +959,65 @@ fun LiquidHabitCircle(
 
       Card(
          shape = RoundedCornerShape(50),
-         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.75f))
+         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
       ) {
          Text(
             text = label,
-            fontSize = 9.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF333333),
             maxLines = 1,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
          )
       }
    }
 }
 
-// COMPACT TO-DO ROW
+// Compact to-do row
 @Composable
 fun TodoRow(item: TodoItem, onToggle: () -> Unit) {
    Row(
       modifier = Modifier
          .fillMaxWidth()
-         .height(24.dp)
+         .height(34.dp)
+         .clip(RoundedCornerShape(10.dp))
          .clickable { onToggle() },
       verticalAlignment = Alignment.CenterVertically
    ) {
       Box(
          modifier = Modifier
-            .size(14.dp)
+            .size(20.dp)
             .clip(CircleShape)
             .background(if (item.done) Color(0xFF66BB6A) else Color.Transparent)
-            .border(1.2.dp, if (item.done) Color(0xFF66BB6A) else Color(0xFFB0BEC5), CircleShape),
+            .border(1.5.dp, if (item.done) Color(0xFF66BB6A) else Color(0xFFB0BEC5), CircleShape),
          contentAlignment = Alignment.Center
       ) {
          if (item.done) {
-            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(9.dp))
+            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
          }
       }
 
-      Spacer(modifier = Modifier.width(5.dp))
+      Spacer(modifier = Modifier.width(8.dp))
 
       Text(
          text = item.label,
          modifier = Modifier.weight(1f),
-         fontSize = 9.5.sp,
+         fontSize = 13.sp,
+         maxLines = 1,
          color = if (item.done) Color(0xFF9E9E9E) else Color(0xFF333333),
          textDecoration = if (item.done) TextDecoration.LineThrough else TextDecoration.None
       )
 
       Text(
          text = "🪙${item.coinReward}",
-         fontSize = 8.5.sp,
-         color = if (item.done) Color(0xFFCCCCCC) else Color(0xFF8D6E63)
+         fontSize = 11.sp,
+         fontWeight = FontWeight.SemiBold,
+         color = if (item.done) Color(0xFFCCCCCC) else InkSoft
       )
    }
 }
 
-// NEWS BOARD
+// News board
 @Composable
 fun NewsBoard(
    newsList: List<NavigationItem>,
@@ -1029,14 +1025,14 @@ fun NewsBoard(
    onClearAll: () -> Unit,
    onClose: () -> Unit) {
    Card(
-      modifier = Modifier.width(220.dp)
+      modifier = Modifier.width(240.dp)
          .offset(x = 8.dp, y = 20.dp),
-      shape = RoundedCornerShape(14.dp),
-      colors = CardDefaults.cardColors(containerColor = Color(0xEECCCCCC)),
+      shape = RoundedCornerShape(20.dp),
+      colors = CardDefaults.cardColors(containerColor = GlassWhite),
       elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-      //  border = BorderStroke(2.dp, Color.White)
+      border = BorderStroke(1.dp, CardBorder),
    ) {
-      Column(modifier = Modifier.padding(5.dp)
+      Column(modifier = Modifier.padding(10.dp)
       ) {
 
          Row(
@@ -1044,28 +1040,29 @@ fun NewsBoard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
          ) {
-            //Header
-            IconButton(onClick = onClearAll, modifier = Modifier.size(18.dp)) {
+            // Clear all notifications.
+            IconButton(onClick = onClearAll, modifier = Modifier.size(24.dp)) {
                Icon(
                   Icons.Default.DeleteForever,
                   contentDescription = "Delete All",
-                  tint = Color(0xFF64748B)
+                  tint = Color(0xFF64748B),
+                  modifier = Modifier.size(18.dp)
                )
             }
-            //header title
-            Text("METRICS NEWS", fontSize = 8.sp, fontWeight= FontWeight.ExtraBold, color = Color(0xFF334155))
-            //close X
-            IconButton(onClick = onClose, modifier = Modifier.size(18.dp)) {
-               Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B))
+            // News board title.
+            Text("METRICS NEWS", fontSize = 11.sp, fontWeight= FontWeight.ExtraBold, letterSpacing = 1.sp, color = Color(0xFF334155))
+            // Close the news board.
+            IconButton(onClick = onClose, modifier = Modifier.size(24.dp)) {
+               Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
             }
          }
 
-         Spacer(modifier = Modifier.height(6.dp))
+         Spacer(modifier = Modifier.height(8.dp))
 
          if (newsList.isEmpty()) {
             Text(
                text = "You're all caught up",
-               fontSize = 8.sp,
+               fontSize = 12.sp,
                color = Color(0xFF90A4AE),
                modifier = Modifier.padding(vertical = 8.dp)
             )
@@ -1074,8 +1071,8 @@ fun NewsBoard(
             LazyColumn(
                modifier = Modifier
                   .fillMaxWidth()
-                  .height(100.dp),//fixed height
-               verticalArrangement = Arrangement.spacedBy(4.dp)
+                  .height(150.dp),// Fixed height for the notification list.
+               verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                items(
                   items = newsList,
@@ -1089,7 +1086,6 @@ fun NewsBoard(
 
             }
          }
-
 
 
 //         Column(
@@ -1110,7 +1106,7 @@ fun NewsBoard(
 //            )
 //         }
 
-         Spacer(modifier = Modifier.height(8.dp))
+         Spacer(modifier = Modifier.height(4.dp))
 
       }
    }
@@ -1122,11 +1118,11 @@ fun  NotificationCardItem(
    onDismiss: () -> Unit
 ) {
    val cardColor = when (item.type) {
-      NotificationType.ALERT -> Color(0xFF389ED0) //BLUE
-      NotificationType.REWARD -> Color(0xFFFFA726)//PURPLE
+      NotificationType.ALERT -> Color(0xFF389ED0) // Blue for alerts.
+      NotificationType.REWARD -> Color(0xFFFFA726) // Orange for rewards.
       NotificationType.MILESTONE -> Color(0xFF8B5CF6)
       NotificationType.Social -> Color(0xFF43A047)
-      NotificationType.STEPS -> Color(0xFF26A69)
+      NotificationType.STEPS -> Color(0xFF26A69A) // Teal for step updates.
    }
 
    val icon: ImageVector = when (item.type) {
@@ -1139,17 +1135,17 @@ fun  NotificationCardItem(
    Box(modifier = Modifier.fillMaxWidth()) {
       Card(
          modifier = Modifier.fillMaxWidth(),
-         shape = RoundedCornerShape(6.dp),
+         shape = RoundedCornerShape(14.dp),
          colors = CardDefaults.cardColors(containerColor = cardColor)
       ) {
-         //Column(modifier = Modifier.padding(8.dp)) {
+
          Row(
-            modifier = Modifier.padding(5.dp),
+            modifier = Modifier.padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
          ) {
             Box(
-               modifier = Modifier.size(24.dp)
-                  .clip(RoundedCornerShape(9.dp))
+               modifier = Modifier.size(34.dp)
+                  .clip(RoundedCornerShape(11.dp))
                   .background(Color.White.copy(0.25f)),
                contentAlignment = Alignment.Center
             ) {
@@ -1157,16 +1153,16 @@ fun  NotificationCardItem(
                   icon,
                   contentDescription = null,
                   tint = Color.White,
-                  modifier = Modifier.size(18.dp)
+                  modifier = Modifier.size(20.dp)
                )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f).padding(end = 14.dp)) {
                Text(
                   text = item.timestamp,
-                  fontSize = 7.sp,
+                  fontSize = 9.sp,
                   color = Color.White.copy(alpha = 0.8f)
 
                )
@@ -1174,7 +1170,7 @@ fun  NotificationCardItem(
 
                Text(
                   text = item.title,
-                  fontSize = 8.5.sp,
+                  fontSize = 12.sp,
                   fontWeight = FontWeight.Bold,
                   color = Color.White
                )
@@ -1182,19 +1178,19 @@ fun  NotificationCardItem(
 
                Text(
                   text = item.message,
-                  fontSize = 7.5.sp,
+                  fontSize = 11.sp,
                   color = Color.White
                )
             }
          }
       }
+      // Keeps the dismiss button inside the card so it is not clipped.
       Box(
          modifier = Modifier.align(Alignment.TopEnd)
-            .offset(x = 6.dp, y = (-6).dp)
+            .padding(6.dp)
             .size(20.dp)
             .clip(CircleShape)
             .background(Color.White)
-            .border(1.dp, cardColor, CircleShape)
             .clickable { onDismiss() },
          contentAlignment = Alignment.Center
       ) {
@@ -1221,148 +1217,187 @@ fun StepsChip(
          .clip(RoundedCornerShape(50))
          .background(Color(0xFFFFF3E0))
          .clickable(enabled = !hasPermission) { onConnectClick() }
-         .padding(horizontal = 4.dp, vertical = 1.dp),
+         .padding(horizontal = 6.dp, vertical = 2.dp),
       verticalAlignment = Alignment.CenterVertically
    ) {
       Icon(
          imageVector = Icons.Default.DirectionsRun,
          contentDescription = "Steps",
          tint = Color(0xFFFFA726),
-         modifier = Modifier.size(8.dp)
+         modifier = Modifier.size(11.dp)
       )
-      Spacer(modifier = Modifier.width(2.dp))
+      Spacer(modifier = Modifier.width(3.dp))
       Text(
          text = label,
-         fontSize = 8.sp,
+         fontSize = 10.sp,
          fontWeight = FontWeight.Bold,
-         color = Color(0xFF8D6E63),
+         color = InkSoft,
          maxLines = 1
       )
    }
 }
 
 
-// AVATAR PIE MENU
-// A Sims-style radial menu: a ring of wedges around the tap point, one per habit.
-// Tapping anywhere inside a wedge (not just directly on its icon) selects it, and
-// tapping the centre hole or outside the ring dismisses the menu.
+// Avatar pie menu
+
+
+// Shows each habit in a small pill beside the avatar. Selecting one adds 25% progress.
 @Composable
 fun AvatarPieMenu(
    center: Offset,
    items: List<PieMenuItem>,
-   onDismiss: () -> Unit
+   onDismiss: () -> Unit,
+   onAddHabit: () -> Unit = {}
 ) {
    val density = LocalDensity.current
-   val outerRadiusDp = 108.dp
-   val innerRadiusDp = 32.dp
-   val outerRadiusPx = with(density) { outerRadiusDp.toPx() }
-   val innerRadiusPx = with(density) { innerRadiusDp.toPx() }
-   val iconRadiusPx = (outerRadiusPx + innerRadiusPx) / 2f
-   val gapDeg = 3f // gap between wedges, in degrees
+   val pillZoneWidth = 168.dp // Width available for each pill.
+   val pillHeight = 40.dp
+   val rowGap = 12.dp
+   val centerGap = 22.dp // Space between the tap point and the pills.
+   val sideStagger = 26.dp // Staggers the pills on the right.
 
-   val sliceCount = items.size.coerceAtLeast(1)
-   val sliceAngle = 360f / sliceCount
+   // Shows an Add Habit option if the user has no habits yet.
+   val pillItems = if (items.isEmpty()) {
+      listOf(
+         PieMenuItem(
+            id = "add",
+            icon = Icons.Default.Add,
+            label = "Add a habit",
+            color = Accent,
+            onSelect = onAddHabit
+         )
+      )
+   } else {
+      items
+   }
 
-   Box(
+   BoxWithConstraints(
       modifier = Modifier
          .fillMaxSize()
-         .background(Color.Black.copy(alpha = 0.35f))
-         .pointerInput(items, center) {
-            detectTapGestures(onTap = { tapOffset ->
-               val dx = tapOffset.x - center.x
-               val dy = tapOffset.y - center.y
-               val dist = sqrt(dx * dx + dy * dy)
-               if (items.isEmpty() || dist < innerRadiusPx || dist > outerRadiusPx) {
-                  onDismiss()
-               } else {
-                  var angleDeg = Math.toDegrees(atan2(dy, dx).toDouble()).toFloat()
-                  if (angleDeg < 0f) angleDeg += 360f
-                  val index = (angleDeg / sliceAngle).toInt().coerceIn(0, items.size - 1)
-                  items[index].onSelect()
+         .background(Color.Black.copy(alpha = 0.22f))
+         .clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onDismiss
+         )
+   ) {
+      val screenW = maxWidth
+      val screenH = maxHeight
+      val cx = with(density) { center.x.toDp() }
+      val cy = with(density) { center.y.toDp() }
+
+      // Keeps the menu near the tap point without covering the top bar or leaving the screen.
+      val rows = (pillItems.size + 1) / 2
+      val totalHeight = pillHeight * rows + rowGap * (rows - 1) + sideStagger
+      val top = (cy - totalHeight / 2).coerceIn(80.dp, maxOf(80.dp, screenH - totalHeight - 24.dp))
+
+      pillItems.forEachIndexed { index, item ->
+         val onRight = index % 2 == 0
+         val row = index / 2
+         // Spreads the pills out slightly around the avatar.
+         val middle = (rows - 1) / 2f
+         val curve = (abs(row - middle) * 14f).dp
+         val y = top + (pillHeight + rowGap) * row + (if (onRight) sideStagger else 0.dp)
+         val x = if (onRight) cx + centerGap + curve else cx - centerGap - curve - pillZoneWidth
+         val clampedX = x.coerceIn(8.dp, maxOf(8.dp, screenW - pillZoneWidth - 8.dp))
+
+         // Aligns the left-side pills towards the avatar.
+         Row(
+            modifier = Modifier
+               .offset(x = clampedX, y = y)
+               .width(pillZoneWidth),
+            horizontalArrangement = if (onRight) Arrangement.Start else Arrangement.End
+         ) {
+            AvatarActionPill(
+               item = item,
+               index = index,
+               onClick = {
+                  item.onSelect()
                   onDismiss()
                }
-            })
-         }
-   ) {
-      // The wedge ring itself
-      Canvas(
-         modifier = Modifier
-            .size(outerRadiusDp * 2)
-            .offset {
-               IntOffset(
-                  (center.x - outerRadiusPx).roundToInt(),
-                  (center.y - outerRadiusPx).roundToInt()
-               )
-            }
-      ) {
-         items.forEachIndexed { index, item ->
-            val startAngle = index * sliceAngle + gapDeg / 2f
-            val sweepAngle = sliceAngle - gapDeg
-            drawArc(
-               color = item.color.copy(alpha = 0.95f),
-               startAngle = startAngle,
-               sweepAngle = sweepAngle,
-               useCenter = true,
-               size = Size(outerRadiusPx * 2, outerRadiusPx * 2)
             )
          }
-         // Punch the centre out so it reads as a ring, like the Sims radial menu
-         drawCircle(
-            color = Color.White,
-            radius = innerRadiusPx,
-            center = Offset(outerRadiusPx, outerRadiusPx)
-         )
       }
+   }
+}
 
-      // One icon per wedge — purely visual, taps are handled by the Box above
-      items.forEachIndexed { index, item ->
-         val midAngleDeg = index * sliceAngle + sliceAngle / 2f
-         val midAngleRad = Math.toRadians(midAngleDeg.toDouble())
-         val iconX = center.x + iconRadiusPx * cos(midAngleRad).toFloat()
-         val iconY = center.y + iconRadiusPx * sin(midAngleRad).toFloat()
-         val halfIconPx = with(density) { 11.dp.toPx() }
+// Displays a habit's icon, name and progress.
+@Composable
+private fun AvatarActionPill(item: PieMenuItem, index: Int, onClick: () -> Unit) {
+   // Adds a short delay so the pills appear one after another.
+   var shown by remember { mutableStateOf(false) }
+   LaunchedEffect(Unit) {
+      delay(index * 60L)
+      shown = true
+   }
+   val appear by animateFloatAsState(
+      targetValue = if (shown) 1f else 0f,
+      animationSpec = tween(220),
+      label = "pillAppear"
+   )
 
-         Box(
-            modifier = Modifier
-               .offset {
-                  IntOffset(
-                     (iconX - halfIconPx).roundToInt(),
-                     (iconY - halfIconPx).roundToInt()
-                  )
-               }
-               .size(22.dp),
-            contentAlignment = Alignment.Center
-         ) {
-            Icon(item.icon, contentDescription = item.label, tint = Color.White, modifier = Modifier.size(18.dp))
+   // Shrinks the pill slightly while it is pressed.
+   val interaction = remember { MutableInteractionSource() }
+   val pressed by interaction.collectIsPressedAsState()
+   val pressScale by animateFloatAsState(
+      targetValue = if (pressed) 0.95f else 1f,
+      animationSpec = tween(90),
+      label = "pillPress"
+   )
+
+   val shape = RoundedCornerShape(50)
+   Row(
+      modifier = Modifier
+         .graphicsLayer {
+            val s = (0.85f + 0.15f * appear) * pressScale
+            scaleX = s
+            scaleY = s
+            alpha = appear
          }
-      }
-
-      // Centre cancel button
+         .height(40.dp)
+         .shadow(6.dp, shape)
+         .clip(shape)
+         .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.White, Color(0xFFE6EEF9))))
+         .border(1.dp, Color.White, shape)
+         .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+         .padding(start = 6.dp, end = 14.dp),
+      verticalAlignment = Alignment.CenterVertically
+   ) {
       Box(
          modifier = Modifier
-            .offset {
-               IntOffset(
-                  (center.x - innerRadiusPx).roundToInt(),
-                  (center.y - innerRadiusPx).roundToInt()
-               )
-            }
-            .size(innerRadiusDp * 2)
+            .size(28.dp)
             .clip(CircleShape)
-            .background(Color.White)
-            .border(1.5.dp, Color(0xFFDDDDDD), CircleShape),
+            .background(item.color.copy(alpha = 0.18f)),
          contentAlignment = Alignment.Center
       ) {
-         Icon(
-            Icons.Default.Close,
-            contentDescription = "Close",
-            tint = Color(0xFF9E9E9E),
-            modifier = Modifier.size(16.dp)
+         Icon(item.icon, contentDescription = null, tint = item.color, modifier = Modifier.size(17.dp))
+      }
+
+      Spacer(modifier = Modifier.width(8.dp))
+
+      Text(
+         text = item.label,
+         fontSize = 13.sp,
+         fontWeight = FontWeight.SemiBold,
+         color = Color(0xFF2B5C9E),
+         maxLines = 1,
+         overflow = TextOverflow.Ellipsis,
+         modifier = Modifier.widthIn(max = 96.dp)
+      )
+
+      if (item.progress > 0f) {
+         Spacer(modifier = Modifier.width(6.dp))
+         Text(
+            text = "${(item.progress * 100).toInt()}%",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF7C93B0)
          )
       }
    }
 }
 
-// TOP HUD
+// Top navigation bar
 private val NavbarSurface = Color.White.copy(alpha = 0.88f)
 private val NavbarBorder = Color(0xFFE7B4BE)
 private val NavbarIcon = Color(0xFF6D4C41)
@@ -1379,7 +1414,8 @@ fun JetpackTopNavbar(
    onTodoClick: () -> Unit,
    onNewsClick: () -> Unit,
    onProfileClick: () -> Unit,
-   onSettingsClick: () -> Unit
+   onSettingsClick: () -> Unit,
+   onSyncClick: () -> Unit = {}
 ) {
    var showMoreMenu by remember { mutableStateOf(false) }
 
@@ -1393,7 +1429,7 @@ fun JetpackTopNavbar(
       horizontalArrangement = Arrangement.SpaceBetween
    ) {
 
-      // LEFT ANCHOR - Toggle Habit Drawer
+      // Opens or hides the habit drawer.
       Box {
          Box(
             modifier = Modifier
@@ -1422,7 +1458,7 @@ fun JetpackTopNavbar(
          }
       }
 
-      // Right Side
+      // Right-side menu and shortcuts.
       Row(
          modifier = Modifier
             .height(IntrinsicSize.Min)
@@ -1444,16 +1480,50 @@ fun JetpackTopNavbar(
                )
             }
 
+            // Styles the dropdown to match the rest of the navigation bar.
             DropdownMenu(
                expanded = showMoreMenu,
-               onDismissRequest = { showMoreMenu = false }
+               onDismissRequest = { showMoreMenu = false },
+               offset = DpOffset(x = 0.dp, y = 6.dp),
+               shape = RoundedCornerShape(18.dp),
+               containerColor = Color.White.copy(alpha = 0.97f),
+               tonalElevation = 0.dp,
+               shadowElevation = 12.dp,
+               border = BorderStroke(1.dp, NavbarBorder.copy(alpha = 0.6f))
             ) {
                DropdownMenuItem(
                   text = {
                      Text(
-                        text = "Settings",
-                        fontSize = 12.sp
+                        text = "Sync habits",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Ink
                      )
+                  },
+                  leadingIcon = {
+                     Icon(Icons.Default.Sync, contentDescription = null, tint = NavbarIcon, modifier = Modifier.size(20.dp))
+                  },
+                  onClick = {
+                     showMoreMenu = false
+                     onSyncClick()
+                  }
+               )
+               HorizontalDivider(
+                  modifier = Modifier.padding(horizontal = 14.dp),
+                  thickness = 1.dp,
+                  color = NavbarDivider
+               )
+               DropdownMenuItem(
+                  text = {
+                     Text(
+                        text = "Settings",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Ink
+                     )
+                  },
+                  leadingIcon = {
+                     Icon(Icons.Default.Settings, contentDescription = null, tint = NavbarIcon, modifier = Modifier.size(20.dp))
                   },
                   onClick = {
                      showMoreMenu = false
@@ -1483,19 +1553,22 @@ fun JetpackTopNavbar(
          NavDivider()
 
 
-
-         NavStripIcon(onClick = onNewsClick, leadingPadding = 12.dp) {
-            Icon(Icons.Default.Article, contentDescription = "News", tint = NavbarIcon, modifier = Modifier.size(17.dp))
-         }
-         if (hasUnreadNews && !newsBoardOpen) {
-            Box(
-               modifier = Modifier
-                  .size(9.dp)
-                  //  .align(Alignment.TopEnd)
-                  .clip(CircleShape)
-                  .background(Color(0xFFE53935))
-                  .border(1.5.dp, NavbarSurface, CircleShape)
-            )
+         // Shows the unread indicator on the news icon.
+         Box {
+            NavStripIcon(onClick = onNewsClick, leadingPadding = 12.dp) {
+               Icon(Icons.Default.Article, contentDescription = "News", tint = NavbarIcon, modifier = Modifier.size(17.dp))
+            }
+            if (hasUnreadNews && !newsBoardOpen) {
+               Box(
+                  modifier = Modifier
+                     .size(9.dp)
+                     .align(Alignment.TopEnd)
+                     .offset(x = (-6).dp, y = 7.dp)
+                     .clip(CircleShape)
+                     .background(Color(0xFFE53935))
+                     .border(1.5.dp, NavbarSurface, CircleShape)
+               )
+            }
          }
       }
    }
@@ -1529,11 +1602,12 @@ private fun NavStripIcon(
    }
 }
 /*References
-
 Teergarden, C., 2023. Mastering Lazy Lists in Jetpack Compose with Data Classes and MVI. (Version 10.0) [Source Code]. Available at: < https://proandroiddev.com/mastering-lazy-lists-in-jetpack-compose-with-data-classes-and-mvi-da240800c6e9 > [Accessed 21 September 2026]
 Kavi, R., 2026. Mastering High-Performance Custom Canvas animations in jetpack compose: building a premium circular progress indicator. (Version 10.0) [Source Code]. Available at: < https://raghunandan2005.medium.com/mastering-high-performance-custom-canvas-animations-in-jetpack-compose-building-a-premium-circular-b9f9e465b118 > [Accessed 21 September 2026]
 Malla, M., 2023. Jetsurvey. (Version 10.0) [Source Code]. Available at: < https://github.com/ManasMalla/Jetsurvey > [Accessed 21 September 2026]
 Easy Tuto, 2024. Simple to do App jetpackcompose androidtutorial. (Version 10.0) [Source Code]. Available at: < https://youtu.be/P3xQdINdrWY?si=0Z52xSOqN96XhODE > [Accessed 21 September 2026]
 Samsung Developer., 2025. Build a health app with steps from Samsung Health and its connected wearables. (Version 10.0) [Source Code]. Available at: < https://youtu.be/kEe0bRqhx-g?si=tn83CXqncnYI_ska > [Accessed 21 September 2026]
-
+Gaur, A., 2025. Room Database in Android. (Version 10.0) [Source Code]. Available at: < https://medium.com/@anandgaur2207/room-database-in-android-d5f279d4648a > [Accessed 23 October 2026]
+Android Developers, 2026. Save data in a local database using Room. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/training/data-storage/room > [Accessed 23 October 2026]
+Android Developers, 2026. Write asynchronous DAO queries. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/training/data-storage/room/async-queries > [Accessed 23 October 2026]
  */

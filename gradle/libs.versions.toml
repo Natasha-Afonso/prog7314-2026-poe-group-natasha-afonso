@@ -26,6 +26,7 @@ gson = "2.13.2"
 foundationVersion = "1.12.1"
 uiText = "1.12.1"
 animation = "1.12.1"
+ksp = "2.3.6"
 
 
 [libraries]
@@ -68,3 +69,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-gms-google-services = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }
 parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize"}
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
