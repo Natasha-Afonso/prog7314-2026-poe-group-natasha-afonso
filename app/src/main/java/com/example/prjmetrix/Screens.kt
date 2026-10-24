@@ -517,20 +517,22 @@ fun HomeScreen(
          contentScale = ContentScale.Fit
       )
 
-      // Liquid habit circles
-      Column(
-         modifier = Modifier.align(Alignment.TopEnd).offset(x = (-16).dp, y = 210.dp),
-         verticalArrangement = Arrangement.spacedBy(18.dp),
-         horizontalAlignment = Alignment.End
-      ) {
-         habitCircles.forEachIndexed { index, habit ->
-            LiquidHabitCircle(
-               label = habit.label,
-               icon = habit.icon,
-               progress = habit.progress,
-               liquidColor = habit.color,
-               onClick = { bumpHabitProgress(index) }
-            )
+      // Keep the progress circles out of the way while the habit menu is open.
+      if (pieMenuCenter == null) {
+         Column(
+            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-16).dp, y = 210.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+            horizontalAlignment = Alignment.End
+         ) {
+            habitCircles.forEachIndexed { index, habit ->
+               LiquidHabitCircle(
+                  label = habit.label,
+                  icon = habit.icon,
+                  progress = habit.progress,
+                  liquidColor = habit.color,
+                  onClick = { bumpHabitProgress(index) }
+               )
+            }
          }
       }
 
@@ -1250,13 +1252,12 @@ fun AvatarPieMenu(
    onAddHabit: () -> Unit = {}
 ) {
    val density = LocalDensity.current
-   val pillZoneWidth = 168.dp // Width available for each pill.
+   val pillWidth = 164.dp
    val pillHeight = 40.dp
-   val rowGap = 12.dp
-   val centerGap = 22.dp // Space between the tap point and the pills.
-   val sideStagger = 26.dp // Staggers the pills on the right.
+   val rowGap = 14.dp
+   val columnGap = 14.dp
 
-   // Shows an Add Habit option if the user has no habits yet.
+   // Show an Add Habit option when there are no habits yet.
    val pillItems = if (items.isEmpty()) {
       listOf(
          PieMenuItem(
@@ -1283,30 +1284,28 @@ fun AvatarPieMenu(
    ) {
       val screenW = maxWidth
       val screenH = maxHeight
-      val cx = with(density) { center.x.toDp() }
       val cy = with(density) { center.y.toDp() }
-
-      // Keeps the menu near the tap point without covering the top bar or leaving the screen.
       val rows = (pillItems.size + 1) / 2
-      val totalHeight = pillHeight * rows + rowGap * (rows - 1) + sideStagger
-      val top = (cy - totalHeight / 2).coerceIn(80.dp, maxOf(80.dp, screenH - totalHeight - 24.dp))
+      val totalHeight = pillHeight * rows + rowGap * (rows - 1)
+      val top = (cy - totalHeight / 2).coerceIn(
+         90.dp,
+         maxOf(90.dp, screenH - totalHeight - 24.dp)
+      )
+      val totalWidth = pillWidth * 2 + columnGap
+      val leftX = ((screenW - totalWidth) / 2).coerceAtLeast(8.dp)
+      val rightX = (leftX + pillWidth + columnGap).coerceAtMost(screenW - pillWidth - 8.dp)
 
       pillItems.forEachIndexed { index, item ->
-         val onRight = index % 2 == 0
+         val column = index % 2
          val row = index / 2
-         // Spreads the pills out slightly around the avatar.
-         val middle = (rows - 1) / 2f
-         val curve = (abs(row - middle) * 14f).dp
-         val y = top + (pillHeight + rowGap) * row + (if (onRight) sideStagger else 0.dp)
-         val x = if (onRight) cx + centerGap + curve else cx - centerGap - curve - pillZoneWidth
-         val clampedX = x.coerceIn(8.dp, maxOf(8.dp, screenW - pillZoneWidth - 8.dp))
+         val x = if (column == 0) leftX else rightX
+         val y = top + (pillHeight + rowGap) * row
 
-         // Aligns the left-side pills towards the avatar.
          Row(
             modifier = Modifier
-               .offset(x = clampedX, y = y)
-               .width(pillZoneWidth),
-            horizontalArrangement = if (onRight) Arrangement.Start else Arrangement.End
+               .offset(x = x, y = y)
+               .width(pillWidth),
+            horizontalArrangement = Arrangement.Center
          ) {
             AvatarActionPill(
                item = item,
@@ -1602,6 +1601,7 @@ private fun NavStripIcon(
    }
 }
 /*References
+
 Teergarden, C., 2023. Mastering Lazy Lists in Jetpack Compose with Data Classes and MVI. (Version 10.0) [Source Code]. Available at: < https://proandroiddev.com/mastering-lazy-lists-in-jetpack-compose-with-data-classes-and-mvi-da240800c6e9 > [Accessed 21 September 2026]
 Kavi, R., 2026. Mastering High-Performance Custom Canvas animations in jetpack compose: building a premium circular progress indicator. (Version 10.0) [Source Code]. Available at: < https://raghunandan2005.medium.com/mastering-high-performance-custom-canvas-animations-in-jetpack-compose-building-a-premium-circular-b9f9e465b118 > [Accessed 21 September 2026]
 Malla, M., 2023. Jetsurvey. (Version 10.0) [Source Code]. Available at: < https://github.com/ManasMalla/Jetsurvey > [Accessed 21 September 2026]
@@ -1610,4 +1610,5 @@ Samsung Developer., 2025. Build a health app with steps from Samsung Health and 
 Gaur, A., 2025. Room Database in Android. (Version 10.0) [Source Code]. Available at: < https://medium.com/@anandgaur2207/room-database-in-android-d5f279d4648a > [Accessed 23 October 2026]
 Android Developers, 2026. Save data in a local database using Room. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/training/data-storage/room > [Accessed 23 October 2026]
 Android Developers, 2026. Write asynchronous DAO queries. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/training/data-storage/room/async-queries > [Accessed 23 October 2026]
+
  */
