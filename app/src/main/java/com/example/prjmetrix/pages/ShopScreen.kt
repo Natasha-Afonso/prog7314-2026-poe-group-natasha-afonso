@@ -28,8 +28,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,10 +45,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.prjmetrix.FurnitureCatalog
+import com.example.prjmetrix.FurnitureRepository
+import com.example.prjmetrix.PurchaseResult
 import com.example.prjmetrix.R
+import com.example.prjmetrix.WalletRepository
+import java.text.NumberFormat
+import kotlinx.coroutines.launch
 
 // Colors matching the XML
 val ChipYellow = Color(0xFFFFF1B5)
@@ -52,7 +62,12 @@ val CardStroke = Color(0x603343302E)
 
 data class ShopItem(
     val imageRes: Int,
-    val price: String
+    val price: Int,
+    val category: String,
+    // Set for furniture, which is what the shop can actually sell right now.
+    // Clothes and accessories have no key until the wardrobe is connected.
+    val furnitureKey: String? = null,
+    val name: String = ""
 )
 
 data class ShopCategory(
@@ -61,25 +76,43 @@ data class ShopCategory(
 )
 
 @Composable
-fun ShopScreen() {
+fun ShopScreen(onBack: () -> Unit = {}) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var selectedCategory by remember { mutableStateOf("All") }
+    val snackbar = remember { SnackbarHostState() }
+
+    // The balance and the inventory both come from Room, so the shop updates the moment a
+    // purchase goes through (Android Developers, 2026).
+    val wallet = remember { WalletRepository(context.applicationContext) }
+    val furnitureRepo = remember { FurnitureRepository(context.applicationContext) }
+    val coins by wallet.observeCoins().collectAsState(initial = 0)
+    val owned by furnitureRepo.observeFurniture().collectAsState(initial = emptyList())
 
     val categories = listOf("All", "Hats", "Shoes", "Furniture", "Bows", "Scarfs")
 
+    // Furniture comes from the catalog, so a new catalog entry shows up here automatically
+    val furnitureItems = FurnitureCatalog.items.map {
+        ShopItem(it.drawableRes, it.price, it.category, furnitureKey = it.key, name = it.name)
+    }
+
     // Placeholder drawable ids - swap for your real R.drawable references
-    val items = listOf(
-        ShopItem(R.drawable.redheels, "320"),
-        ShopItem(R.drawable.cupboard, "50"),
-        ShopItem(R.drawable.bow, "126"),
-        ShopItem(R.drawable.bed, "90"),
-        ShopItem(R.drawable.one_piece, "230"),
-        ShopItem(R.drawable.pink_bag, "580"),
-        ShopItem(R.drawable.necklace, "150"),
-        ShopItem(R.drawable.sneakers1, "400")
+    val otherItems = listOf(
+        ShopItem(R.drawable.redheels, 320, "Shoes", name = "Red heels"),
+        ShopItem(R.drawable.bow, 126, "Bows", name = "Bow"),
+        ShopItem(R.drawable.one_piece, 230, "Dresses", name = "One piece"),
+        ShopItem(R.drawable.pink_bag, 580, "Bags", name = "Pink bag"),
+        ShopItem(R.drawable.necklace, 150, "Jewellery", name = "Necklace"),
+        ShopItem(R.drawable.sneakers1, 400, "Shoes", name = "Sneakers")
     )
 
+    val items = (furnitureItems + otherItems).filter {
+        selectedCategory == "All" || it.category == selectedCategory
+    }
+
     Scaffold(
-        containerColor = BgBlue
+        containerColor = BgBlue,
+        snackbarHost = { SnackbarHost(snackbar) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -94,7 +127,7 @@ fun ShopScreen() {
                     .padding(start = 12.dp, top = 14.dp, end = 16.dp, bottom = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { }) {
+                IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
@@ -127,7 +160,7 @@ fun ShopScreen() {
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "5,250",
+                            text = NumberFormat.getInstance().format(coins),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = BrandBrown,
@@ -171,6 +204,23 @@ fun ShopScreen() {
                         rowItems.forEach { item ->
                             ShopItemCard(
                                 item = item,
+                                ownedCount = owned.count { it.itemKey == item.furnitureKey },
+                                canAfford = coins >= item.price,
+                                onBuy = {
+                                    val key = item.furnitureKey ?: return@ShopItemCard
+                                    scope.launch {
+                                        val message = when (wallet.buyFurniture(key)) {
+                                            PurchaseResult.SUCCESS ->
+                                                "${item.name} bought! Find it in Edit mode."
+                                            PurchaseResult.NOT_ENOUGH_COINS ->
+                                                "Not enough coins for ${item.name}."
+                                            PurchaseResult.UNKNOWN_ITEM ->
+                                                "That item isn't available."
+                                        }
+                                        snackbar.currentSnackbarData?.dismiss()
+                                        snackbar.showSnackbar(message)
+                                    }
+                                },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -213,8 +263,13 @@ fun CategoryChip(
 @Composable
 fun ShopItemCard(
     item: ShopItem,
+    ownedCount: Int,
+    canAfford: Boolean,
+    onBuy: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Only furniture can be bought for now; the rest waits for the wardrobe
+    val buyable = item.furnitureKey != null
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
@@ -233,7 +288,17 @@ fun ShopItemCard(
                     .clip(RoundedCornerShape(8.dp))
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+
+            if (item.name.isNotEmpty()) {
+                Text(
+                    text = if (ownedCount > 0) "${item.name} · owned $ownedCount" else item.name,
+                    fontSize = 12.sp,
+                    color = BrandBrown,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(
@@ -242,7 +307,7 @@ fun ShopItemCard(
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = item.price,
+                    text = NumberFormat.getInstance().format(item.price),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = BrandBrown,
@@ -251,16 +316,20 @@ fun ShopItemCard(
                         .padding(start = 4.dp)
                 )
                 Button(
-                    onClick = { },
+                    onClick = onBuy,
+                    enabled = buyable && canAfford,
                     shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ChipYellow),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ChipYellow,
+                        disabledContainerColor = ChipYellow.copy(alpha = 0.45f)
+                    ),
                     contentPadding = PaddingValues(
                         horizontal = 12.dp,
                         vertical = 2.dp
                     )
                 ) {
                     Text(
-                        text = "Buy",
+                        text = if (!buyable) "Soon" else "Buy",
                         color = BrandBrown,
                         fontSize = 16.sp
                     )
@@ -268,10 +337,4 @@ fun ShopItemCard(
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ShopScreenPreview() {
-    ShopScreen()
 }

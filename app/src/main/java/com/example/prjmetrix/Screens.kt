@@ -62,6 +62,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.AlertDialog
@@ -290,7 +291,8 @@ fun HabitEntity.toTodo(linkedToCircle: Boolean, today: String) = TodoItem(
 @Composable
 fun HomeScreen(
    onSettingsClick: () -> Unit ={},
-   onSessionExpired: () -> Unit = {}
+   onSessionExpired: () -> Unit = {},
+   onShopClick: () -> Unit = {}
 ) {
    val context = LocalContext.current
    val scope = rememberCoroutineScope()
@@ -321,7 +323,10 @@ fun HomeScreen(
    }
 
    // Screen state
-   var userCoins by remember { mutableIntStateOf(1250) }
+   // The coin balance lives in Room (wallet table) so the shop and this screen share it
+   val walletRepo = remember { WalletRepository(context.applicationContext) }
+   val userCoins by walletRepo.observeCoins().collectAsState(initial = 0)
+   LaunchedEffect(Unit) { walletRepo.ensureWallet() }
    var showNewsBoard by remember { mutableStateOf(false) }
    val newsItems = remember {mutableStateListOf(*sampleNewList.toTypedArray())}
    // Quest card visibility and expansion
@@ -574,6 +579,7 @@ fun HomeScreen(
             },
             onProfileClick = { },
             onSettingsClick = onSettingsClick,
+            onShopClick = onShopClick,
             onSyncClick = syncHabits,
             onEditModeClick = {
                // Close anything open on top of the room before editing
@@ -825,7 +831,7 @@ fun HomeScreen(
                   Spacer(modifier = Modifier.height(12.dp))
                   Button(
                      onClick = {
-                        userCoins += 500
+                        scope.launch { walletRepo.addCoins(500) }
                         dailyRewardClaimed = true
                         showRewardPopup = false
                      },
@@ -1466,7 +1472,8 @@ fun JetpackTopNavbar(
    onProfileClick: () -> Unit,
    onSettingsClick: () -> Unit,
    onSyncClick: () -> Unit = {},
-   onEditModeClick: () -> Unit = {}
+   onEditModeClick: () -> Unit = {},
+   onShopClick: () -> Unit = {}
 ) {
    var showMoreMenu by remember { mutableStateOf(false) }
 
@@ -1567,6 +1574,28 @@ fun JetpackTopNavbar(
                DropdownMenuItem(
                   text = {
                      Text(
+                        text = "Shop",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Ink
+                     )
+                  },
+                  leadingIcon = {
+                     Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = NavbarIcon, modifier = Modifier.size(20.dp))
+                  },
+                  onClick = {
+                     showMoreMenu = false
+                     onShopClick()
+                  }
+               )
+               HorizontalDivider(
+                  modifier = Modifier.padding(horizontal = 14.dp),
+                  thickness = 1.dp,
+                  color = NavbarDivider
+               )
+               DropdownMenuItem(
+                  text = {
+                     Text(
                         text = "Edit mode",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -1608,8 +1637,11 @@ fun JetpackTopNavbar(
 
          NavDivider()
 
+         // Tapping the coins opens the shop
          Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = Modifier
+               .clickable { onShopClick() }
+               .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
          ) {
             Text(text = "🪙", fontSize = 15.sp)
@@ -1684,5 +1716,4 @@ Samsung Developer., 2025. Build a health app with steps from Samsung Health and 
 Gaur, A., 2025. Room Database in Android. (Version 10.0) [Source Code]. Available at: < https://medium.com/@anandgaur2207/room-database-in-android-d5f279d4648a > [Accessed 23 October 2026]
 Android Developers, 2026. Save data in a local database using Room. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/training/data-storage/room > [Accessed 23 October 2026]
 Android Developers, 2026. Write asynchronous DAO queries. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/training/data-storage/room/async-queries > [Accessed 23 October 2026]
-
  */

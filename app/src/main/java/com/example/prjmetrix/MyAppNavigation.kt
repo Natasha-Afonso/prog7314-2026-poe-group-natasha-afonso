@@ -9,9 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +23,7 @@ import com.example.prjmetrix.pages.AccessibilityScreen
 import com.example.prjmetrix.pages.LanguageScreen
 import com.example.prjmetrix.pages.LoginScreen
 import com.example.prjmetrix.pages.SettingsScreen
+import com.example.prjmetrix.pages.ShopScreen
 import com.example.prjmetrix.pages.SignupScreen
 import com.example.prjmetrix.pages.ThemesScreen
 import com.example.prjmetrix.pages.WardrobeScreen
@@ -43,8 +41,6 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    // true while the home screen is in edit mode, so the bottom navigation can be hidden
-    var hideBottomNav by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val profileViewModel : ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
     val authViewModel : AuthViewModel = viewModel(factory = AuthView2(context))
@@ -125,7 +121,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                     HomeScreen(
                         onSettingsClick = { navController.navigate("settings") },
                         onSessionExpired = {authViewModel.signOut() },
-                        //onEditModeChange = { hideBottomNav = it }
+                        onShopClick = { navController.navigate("shop") }
                     )
                 }
 
@@ -153,6 +149,11 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 
                     ProfileScreen(
                         profileViewModel)
+                }
+
+                // Shop (buy furniture with coins; bought items appear in Edit mode on the home screen)
+                composable("shop") {
+                    ShopScreen(onBack = { navController.popBackStack() })
                 }
 
                 //Wardrobe
@@ -246,11 +247,10 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
             }
 
             if (
-                !hideBottomNav &&
-                (currentRoute == "home" ||
-                        currentRoute == "wardrobe" ||
-                        currentRoute == "journalcover" ||
-                        currentRoute == "profile")
+                currentRoute == "home" ||
+                currentRoute == "wardrobe" ||
+                currentRoute == "journalcover" ||
+                currentRoute == "profile"
             ) {
                 Box(
                     modifier = Modifier

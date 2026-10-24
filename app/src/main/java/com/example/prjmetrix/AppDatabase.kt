@@ -15,11 +15,16 @@ import androidx.sqlite.execSQL
 // The class must be annotated with @Database listing every entity, be abstract, extend
 // RoomDatabase, and expose an abstract no-argument function for each DAO
 // (Android Developers, n.d.).
-// Version 2 adds the owned_furniture table.
-@Database(entities = [HabitEntity::class, FurnitureEntity::class], version = 2, exportSchema = false)
+// Version 2 adds the owned_furniture table, version 3 adds the wallet table.
+@Database(
+    entities = [HabitEntity::class, FurnitureEntity::class, WalletEntity::class],
+    version = 3,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
     abstract fun furnitureDao(): FurnitureDao
+    abstract fun walletDao(): WalletDao
 
     companion object {
         // Volatile keyword ensures thread safety for the database instance (Gaur, 2025)
@@ -45,6 +50,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Version 2 -> 3: only the new wallet table is created and the existing users start with
+        // the same balance the home screen used to show, so nothing else is touched.
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override suspend fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `wallet` (" +
+                            "`id` INTEGER PRIMARY KEY NOT NULL, " +
+                            "`coins` INTEGER NOT NULL)"
+                )
+                connection.execSQL("INSERT OR IGNORE INTO wallet (id, coins) VALUES (1, 1250)")
+            }
+        }
+
         // Each RoomDatabase instance is fairly expensive and an app running in a single
         // process rarely needs more than one, so the singleton design pattern is followed
         // (Android Developers, n.d.).
@@ -55,7 +73,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "habit_database"
                 )
                     .setDriver(AndroidSQLiteDriver())
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance
@@ -65,7 +83,9 @@ abstract class AppDatabase : RoomDatabase() {
 }
 
 /*References
+
 Gaur, A., 2025. Room Database in Android. (Version 10.0) [Source Code]. Available at: < https://medium.com/@anandgaur2207/room-database-in-android-d5f279d4648a > [Accessed 23 October 2026]
 Android Developers, n.d. Save data in a local database using Room. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/training/data-storage/room > [Accessed 23 October 2026]
 Android Developers, 2026. Migrate your Room database. Available at: < https://developer.android.com/training/data-storage/room/migrating-db-versions > [Accessed 24 October 2026]
+
  */

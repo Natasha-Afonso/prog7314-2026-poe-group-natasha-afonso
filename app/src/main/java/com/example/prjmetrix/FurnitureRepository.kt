@@ -12,12 +12,19 @@ data class FurnitureDef(
     val name: String,
     @DrawableRes val drawableRes: Int,
     val widthDp: Int,
-    val heightDp: Int
+    val heightDp: Int,
+    // Coins the shop charges for this item
+    val price: Int = 100,
+    // Shown as a shop category chip
+    val category: String = "Furniture"
 )
 
 object FurnitureCatalog {
     val items = listOf(
-        FurnitureDef("blue_lamp", "Blue lamp", R.drawable.blue_lamp, 92, 354)
+        FurnitureDef("blue_lamp", "Blue lamp", R.drawable.blue_lamp, 92, 354, price = 120),
+        // Sizes are a first guess: change widthDp/heightDp to match the artwork
+        FurnitureDef("cupboard", "Cupboard", R.drawable.cupboard, 130, 190, price = 50),
+        FurnitureDef("bed", "Bed", R.drawable.bed, 220, 140, price = 90)
     )
 
     fun find(key: String): FurnitureDef? = items.firstOrNull { it.key == key }
@@ -66,8 +73,6 @@ class FurnitureRepository(context: Context) {
 }
 
 /*References
-
 Gaur, A., 2025. Room Database in Android. (Version 10.0) [Source Code]. Available at: < https://medium.com/@anandgaur2207/room-database-in-android-d5f279d4648a > [Accessed 23 October 2026]
 Android Developers, n.d. Save data in a local database using Room. (Version 10.0) [Source Code]. Available at: < https://developer.android.com/training/data-storage/room > [Accessed 23 October 2026]
-
  */
