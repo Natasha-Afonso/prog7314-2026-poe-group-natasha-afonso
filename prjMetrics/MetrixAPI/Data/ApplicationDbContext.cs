@@ -26,6 +26,7 @@ namespace MetrixAPI.Data
  public DbSet<OutfitItem> OutfitItems { get; set; }
     public DbSet<OutfitSchedule> OutfitSchedules { get; set; }
     public DbSet<OutfitWearLog> OutfitWearLogs { get; set; }
+    public DbSet<SelfCareQuizResult> SelfCareQuizResults { get; set; }
 
         //Habits
           public DbSet<Habit> Habits { get; set; }

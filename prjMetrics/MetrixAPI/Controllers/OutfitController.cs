@@ -111,6 +111,70 @@ public class OutfitController : ControllerBase
         return Ok();
     }
 
+    //DELETE api/outfits/5, removes the outfit
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteOutfit(int id)
+    {
+        var userId = _identity.GetUserId();
+        var outfit = await _db.Outfits.FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId);
+        if (outfit == null) return NotFound("Outfit not found.");
+
+        _db.OutfitSchedules.RemoveRange(await _db.OutfitSchedules.Where(x => x.OutfitId == id && x.UserId == userId).ToListAsync());
+        _db.OutfitWearLogs.RemoveRange(await _db.OutfitWearLogs.Where(x => x.OutfitId == id && x.UserId == userId).ToListAsync());
+        _db.OutfitItems.RemoveRange(await _db.OutfitItems.Where(x => x.OutfitId == id).ToListAsync());
+        _db.Outfits.Remove(outfit);
+
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    //DELETE api/outfits/schedule/2026-10-23, clears the outfit planned for that day
+    [HttpDelete("schedule/{date}")]
+    public async Task<IActionResult> Unschedule(DateOnly date)
+    {
+        var userId = _identity.GetUserId();
+        var rows = await _db.OutfitSchedules.Where(x => x.UserId == userId && x.Date == date).ToListAsync();
+        _db.OutfitSchedules.RemoveRange(rows);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    //GET api/outfits/wear-log?from=2026-10-19&to=2026-10-25,  what the user wore used by the weekly magazine
+    [HttpGet("wear-log")]
+    public async Task<ActionResult<List<WearLogDto>>> GetWearLogs([FromQuery] DateOnly? from, [FromQuery] DateOnly? to)
+    {
+        var userId = _identity.GetUserId();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var start = from ?? today.AddDays(-7);
+        var end = to ?? today;
+
+        var logs = await _db.OutfitWearLogs
+            .Where(x => x.UserId == userId && x.Date >= start && x.Date <= end)
+            .Include(x => x.Outfit).ThenInclude(o => o.Items).ThenInclude(i => i.ClothingItem)
+            .OrderBy(x => x.Date)
+            .ToListAsync();
+
+        return logs.Select(x => new WearLogDto(
+            x.Date,
+            x.OutfitId,
+            x.Outfit.Name,
+            x.AcceptedSuggestion,
+            x.Outfit.Items
+                .Select(i => new OutfitItemDto(i.ClothingItemId, i.ClothingItem.Name, i.ClothingItem.Category, i.ClothingItem.ImageUrl))
+                .ToList())).ToList();
+    }
+
+    //DELETE api/outfits/wear-log/2026-10-23, the user changed their mind about wearing the suggestion
+    [HttpDelete("wear-log/{date}")]
+    public async Task<IActionResult> DeleteWearLog(DateOnly date)
+    {
+        var userId = _identity.GetUserId();
+        var rows = await _db.OutfitWearLogs.Where(x => x.UserId == userId && x.Date == date).ToListAsync();
+        _db.OutfitWearLogs.RemoveRange(rows);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
     private static OutfitDto ToDto(Outfit outfit) =>
         new(outfit.Id, outfit.Name, outfit.CreatedAt,
             outfit.Items.Select(i => new OutfitItemDto(i.ClothingItemId, i.ClothingItem.Name, i.ClothingItem.Category, i.ClothingItem.ImageUrl)).ToList());

@@ -81,6 +81,10 @@ namespace MetrixAPI.Services
                 return false;
             }
 
+            var outfitLinks = await _context.OutfitItems
+                .Where(oi => oi.ClothingItemId == id)
+                .ToListAsync();
+
             _context.ClothingItems.Remove(item);
 
             await _context.SaveChangesAsync();
