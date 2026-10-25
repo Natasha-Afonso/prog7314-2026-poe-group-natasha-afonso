@@ -10,6 +10,7 @@ namespace MetrixAPI.Models
         public string ColorHex{ get; set;} = "#29B6F6";
     
         public int GoldCoins { get; set; } = 5;
+        public int TargetCount { get; set; } = 1;   // times per day the habit is done
 
         public DateTime CreatedAt { get; set; }
 

@@ -60,7 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
-// Colours are private to HomeScreen.kt, so this file keeps its own set (soft lavender/pink panel)
+// Colours used by the furniture editing screen.
 private val EditInk = Color(0xFF7A4B92)
 private val EditInkSoft = Color(0xFFA37DB8)
 private val EditAccent = Color(0xFFD46BC8)
@@ -70,11 +70,7 @@ private val PanelEdge = Color(0xFFE2B6EE)
 private val TileBg = Color(0xFFEBCDF4)
 private val TileBorder = Color(0xFFDDB0EE)
 
-// FURNITURE LAYER
-// Draws every placed piece of furniture at its saved position. Positions are stored as
-// fractions (0..1) of the free space in the room, so they land in the same spot on any screen.
-// In edit mode a piece can be dragged; tap it to select it and show the "x" that puts it back
-// in the tray.
+// Displays placed furniture and allows it to be moved in edit mode.
 @Composable
 fun FurnitureLayer(
     furniture: List<FurnitureEntity>,
@@ -89,7 +85,7 @@ fun FurnitureLayer(
         val roomW = maxWidth
         val roomH = maxHeight
 
-        // Tapping empty floor in edit mode clears the selection
+        // Tapping the empty floor clears the selection.
         if (editMode) {
             Box(
                 modifier = Modifier
@@ -107,7 +103,7 @@ fun FurnitureLayer(
             val freeW = (roomW - def.widthDp.dp).coerceAtLeast(0.dp)
             val freeH = (roomH - def.heightDp.dp).coerceAtLeast(0.dp)
 
-            // Live fractions while dragging; saved to Room only when the finger lifts
+            // Tracks the furniture position while dragging.
             var fx by remember(item.localId, item.posX) { mutableFloatStateOf(item.posX) }
             var fy by remember(item.localId, item.posY) { mutableFloatStateOf(item.posY) }
             val selected = editMode && selectedId == item.localId
@@ -153,7 +149,7 @@ fun FurnitureLayer(
                     contentScale = ContentScale.Fit
                 )
 
-                // Puts the piece back in the tray
+                // Returns the selected item to the tray.
                 if (selected) {
                     Box(
                         modifier = Modifier
@@ -178,8 +174,7 @@ fun FurnitureLayer(
     }
 }
 
-// EDIT MODE TOP BAR
-// Replaces the normal top bar while editing: a label chip and a Done button.
+// Shows the editing label and Done button.
 @Composable
 fun EditModeTopBar(onDone: () -> Unit, modifier: Modifier = Modifier) {
     Row(
@@ -217,11 +212,7 @@ fun EditModeTopBar(onDone: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-// FURNITURE TRAY
-// The bottom panel listing everything the user owns, laid out as a grid of tiles under a
-// category chip. Tap a tile to put the piece in the room (or back in the tray if it is already
-// placed). The panel sits at the very bottom because the app's bottom navigation is hidden
-// while editing.
+// Shows the user's furniture in a grid at the bottom of the screen.
 @Composable
 fun FurnitureTray(
     furniture: List<FurnitureEntity>,
@@ -240,7 +231,7 @@ fun FurnitureTray(
             .border(2.dp, PanelEdge, panelShape)
             .padding(start = 14.dp, end = 14.dp, top = 14.dp)
     ) {
-        // Category chip + owned count
+        // Shows the furniture category and owned item count.
         Row(verticalAlignment = Alignment.CenterVertically) {
             val chipShape = RoundedCornerShape(50)
             Row(
@@ -261,7 +252,7 @@ fun FurnitureTray(
 
         Spacer(Modifier.height(12.dp))
 
-        // Grid sits in a lighter rounded well, like the item list in the reference
+        // Displays the furniture tiles.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -319,7 +310,8 @@ private fun FurnitureTile(item: FurnitureEntity, onClick: () -> Unit) {
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit
         )
-        // Small corner tag on pieces that are already standing in the room
+
+        // Marks furniture that is already placed in the room.
         if (item.placed) {
             Box(
                 modifier = Modifier

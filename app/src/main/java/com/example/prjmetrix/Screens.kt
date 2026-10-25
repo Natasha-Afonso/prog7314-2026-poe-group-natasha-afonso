@@ -55,6 +55,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.runtime.key
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -152,7 +157,8 @@ data class HabitCircle(
    val label: String,
    val icon: ImageVector,
    val progress: Float,
-   val color: Color
+   val color: Color,
+   val targetCount: Int = 1 // times a day the habit is done
 )
 
 data class TodoItem(
@@ -221,7 +227,25 @@ data class PieMenuItem(
    val label: String,
    val color: Color,
    val onSelect: () -> Unit,
-   val progress: Float = 0f // shown on the habit pill once progress is above 0
+   val progress: Float = 0f, // shown on the habit pill once progress is above 0
+   val targetCount: Int = 1,
+   val keepOpen: Boolean = false // true = choosing it opens another menu instead of closing
+)
+
+// Tracks the menu position and which menu page is open.
+enum class MenuLevel { ROOT, HABITS }
+data class MenuState(val center: Offset, val level: MenuLevel = MenuLevel.ROOT)
+
+// Sets the tappable area around the avatar.
+private val AvatarHitWidth = 220.dp
+private val AvatarHitHeight = 430.dp
+
+private val FunFacts = listOf(
+   "Honey never spoils. Edible honey has been found in ancient Egyptian tombs.",
+   "Octopuses have three hearts.",
+   "Bananas are berries, but strawberries aren't.",
+   "A day on Venus is longer than a year on Venus.",
+   "Sea otters wrap themselves in kelp so they don't drift away while they sleep."
 )
 
 
@@ -244,13 +268,6 @@ val sampleNewList = listOf(
       timestamp = "Just now"
    )
 )
-fun iconForKey(key: String): ImageVector = when (key) {
-   "water" -> Icons.Default.WaterDrop
-   "brush" -> Icons.Default.Brush
-   "cardio" -> Icons.Default.DirectionsRun
-   else -> Icons.Default.Check
-}
-
 fun colorFromHex(hex: String): Color =
    runCatching { Color(android.graphics.Color.parseColor(hex)) }
       .getOrDefault(Color(0xFF29B6F6))
@@ -260,13 +277,14 @@ fun HabitItemDto.toCircle() = HabitCircle(
    label = label,
    icon = iconForKey(iconKey),
    progress = progress,
-   color = colorFromHex(colorHex)
+   color = colorFromHex(colorHex),
+   targetCount = targetCount
 )
 
 fun HabitItemDto.toTodo(linkedToCircle: Boolean) = TodoItem(
    id = id.toString(),
    label = label,
-   coinReward = goldCoins,
+   coinReward = GOAL_COINS,
    done = progress >= 1f,
    habitId = if (linkedToCircle) id.toString() else null
 )
@@ -278,13 +296,14 @@ fun HabitEntity.toCircle(today: String) = HabitCircle(
    label = label,
    icon = iconForKey(iconKey),
    progress = if (progressDate == today) progress else 0f,
-   color = colorFromHex(colorHex)
+   color = colorFromHex(colorHex),
+   targetCount = targetCount
 )
 
 fun HabitEntity.toTodo(linkedToCircle: Boolean, today: String) = TodoItem(
    id = localId.toString(),
    label = label,
-   coinReward = goldCoins,
+   coinReward = GOAL_COINS,
    done = (if (progressDate == today) progress else 0f) >= 1f,
    habitId = if (linkedToCircle) localId.toString() else null
 )
@@ -299,7 +318,7 @@ fun HomeScreen(
    val density = LocalDensity.current
 
    // Profile and avatar
-   // Uses the same ViewModel as the Profile screen, so saved changes appear here too.
+   // Shares avatar settings with the Profile screen.
 
    val profileViewModel: ProfileViewModel = viewModel(
       factory = ProfileViewModelFactory(context)
@@ -323,7 +342,7 @@ fun HomeScreen(
    }
 
    // Screen state
-   // The coin balance lives in Room (wallet table) so the shop and this screen share it
+   // Room stores the coin balance for the shop and this screen.
    val walletRepo = remember { WalletRepository(context.applicationContext) }
    val userCoins by walletRepo.observeCoins().collectAsState(initial = 0)
    LaunchedEffect(Unit) { walletRepo.ensureWallet() }
@@ -337,15 +356,21 @@ fun HomeScreen(
    var showAddHabitDialog by remember { mutableStateOf(false) }
    var newHabitText by remember { mutableStateOf("") }
    var avatarRootPosition by remember { mutableStateOf(Offset.Zero) }
-   var pieMenuCenter by remember { mutableStateOf<Offset?>(null) }
+   var menu by remember { mutableStateOf<MenuState?>(null) }
+   // What the avatar is currently saying (fun fact / thoughts)
+   var speech by remember { mutableStateOf<String?>(null) }
+   // Habit the user asked to delete (shows the confirmation)
+   var habitToDelete by remember { mutableStateOf<TodoItem?>(null) }
 
-   var dailyRewardClaimed by remember { mutableStateOf(false) }
-   var showRewardPopup by remember { mutableStateOf(false) }
+   // Mystery gift (3 goals finished in one day) and the small "+5 coins" pill
+   var showGiftPopup by remember { mutableStateOf(false) }
+   var giftResult by remember { mutableStateOf<GiftResult?>(null) }
+   var coinToast by remember { mutableStateOf<String?>(null) }
 
    // Habits (offline-first)
 
 
-   // Room supplies the habit list and updates the screen when the table changes, even offline.
+   // Room updates the habit list, including while offline.
    val habitRepo = remember { OfflineHabitRepository(context.applicationContext) }
    val habitEntities by habitRepo.observeHabits().collectAsState(initial = emptyList())
    val todayString = remember { LocalDate.now().toString() }
@@ -378,10 +403,10 @@ fun HomeScreen(
 
 
 
-   // Tracks whether the last sync worked; habits still work locally when offline.
+   // Tracks sync status; habits still work offline.
    var syncStatus by remember { mutableStateOf(SyncResult.OK) }
 
-   // Uploads pending changes and fetches the latest habits.
+   // Syncs pending changes and downloads the latest habits.
    val syncHabits: () -> Unit = {
       scope.launch {
          val result = habitRepo.sync()
@@ -390,38 +415,54 @@ fun HomeScreen(
       }
    }
 
-   // Saves progress locally first, then syncs it with the API.
+   // Saves progress locally before syncing.
    val saveProgress: (String, Float) -> Unit = { habitId, progress ->
-      scope.launch { habitRepo.setProgress(habitId.toInt(), progress) }
-   }
-
-
-
-   // Each interaction adds 25% progress instead of completing the habit straight away.
-   val bumpHabitProgress: (Int) -> Unit = { index ->
-      val habit = habitCircles[index]
-      val newProg = (habit.progress + 0.25f).coerceAtMost(1f)
-      saveProgress(habit.id, newProg)
-   }
-
-   // Adds 25% progress using the habit ID, including habits outside the three circles.
-   val bumpHabitById: (String, Float) -> Unit = { habitId, currentProgress ->
-      saveProgress(habitId, (currentProgress + 0.25f).coerceAtMost(1f))
-   }
-
-   // The first three habits are shown as the daily pinned habits.
-   val pinnedHabits = todos.take(3)
-   val otherHabits = todos.drop(3)
-   val allPinnedDone = pinnedHabits.isNotEmpty() && pinnedHabits.all { it.done }
-
-   LaunchedEffect(allPinnedDone) {
-      if (allPinnedDone && !dailyRewardClaimed) {
-         showRewardPopup = true
+      scope.launch {
+         // setProgress returns the coins earned.
+         val earned = habitRepo.setProgress(habitId.toInt(), progress)
+         if (earned > 0) coinToast = "+$earned 🪙"
       }
    }
 
 
-   // The avatar menu can show up to six habits.
+
+   // Each tap adds one step towards the daily goal.
+   val bumpHabitProgress: (Int) -> Unit = { index ->
+      val habit = habitCircles[index]
+      saveProgress(habit.id, nextProgress(habit.progress, habit.targetCount))
+   }
+
+   // Adds progress by habit ID, including unpinned habits.
+   val bumpHabitById: (String, Float, Int) -> Unit = { habitId, currentProgress, targetCount ->
+      saveProgress(habitId, nextProgress(currentProgress, targetCount))
+   }
+
+   // The first three habits stay pinned.
+   val pinnedHabits = todos.take(3)
+   val otherHabits = todos.drop(3)
+
+   // 3 goals finished today (any habits) earns one mystery gift per day. The date is saved once
+   // the gift is opened, so it only appears once even if habits are un-ticked and ticked again.
+   val goalsFinishedToday = habitEntities.count { it.progressDate == todayString && it.progress >= 1f }
+   LaunchedEffect(goalsFinishedToday) {
+      val giftPrefs = context.getSharedPreferences("metrix_prefs", Context.MODE_PRIVATE)
+      if (goalsFinishedToday >= MYSTERY_GIFT_GOALS &&
+         giftPrefs.getString("mystery_gift_date", null) != todayString
+      ) {
+         showGiftPopup = true
+      }
+   }
+
+   // The "+5 🪙" pill disappears by itself
+   LaunchedEffect(coinToast) {
+      if (coinToast != null) {
+         delay(1600)
+         coinToast = null
+      }
+   }
+
+
+   // Habits shown after choosing "Do a habit".
    val pieMenuItems = habitEntities.take(6).map { entity ->
       val habit = entity.toCircle(todayString)
       PieMenuItem(
@@ -429,9 +470,76 @@ fun HomeScreen(
          icon = habit.icon,
          label = habit.label,
          color = habit.color,
-         onSelect = { bumpHabitById(habit.id, habit.progress) },
-         progress = habit.progress
+         onSelect = { bumpHabitById(habit.id, habit.progress, habit.targetCount) },
+         progress = habit.progress,
+         targetCount = habit.targetCount
       )
+   }
+
+   // Top level avatar menu. "Do a habit" opens the habit list (keepOpen), the others make the
+   // avatar speak. Personality-based options can be added to this list later.
+   val goalsDoneToday = goalsFinishedToday
+
+   // Second page: the habits plus a way back. Rebuilt on every recomposition so it always shows
+   // the latest progress.
+   val habitMenuItems: List<PieMenuItem> =
+      pieMenuItems.ifEmpty {
+         listOf(
+            PieMenuItem(
+               id = "add",
+               icon = Icons.Default.Add,
+               label = "Add a habit",
+               color = Accent,
+               onSelect = { showAddHabitDialog = true }
+            )
+         )
+      } + PieMenuItem(
+         id = "back",
+         icon = Icons.AutoMirrored.Filled.ArrowBack,
+         label = "Back",
+         color = InkSoft,
+         keepOpen = true,
+         onSelect = { menu = menu?.copy(level = MenuLevel.ROOT) }
+      )
+
+   val avatarRootItems: List<PieMenuItem> = listOf(
+      PieMenuItem(
+         id = "do_habit",
+         icon = Icons.Default.Check,
+         label = "Do a habit",
+         color = Accent,
+         keepOpen = true,
+         onSelect = { menu = menu?.copy(level = MenuLevel.HABITS) }
+      ),
+      PieMenuItem(
+         id = "fun_fact",
+         icon = Icons.Default.Lightbulb,
+         label = "Fun fact",
+         color = Color(0xFFFFA726),
+         onSelect = { speech = FunFacts.random() }
+      ),
+      PieMenuItem(
+         id = "thoughts",
+         icon = Icons.Default.ChatBubble,
+         label = "Your thoughts",
+         color = Color(0xFF8B5CF6),
+         onSelect = {
+            speech = when {
+               habitEntities.isEmpty() -> "Add a habit and we'll start together!"
+               goalsDoneToday >= MYSTERY_GIFT_GOALS -> "$goalsDoneToday goals done today. I'm so proud of you!"
+               goalsDoneToday > 0 -> "$goalsDoneToday goal done today. Keep going!"
+               else -> "A little progress today still counts."
+            }
+         }
+      )
+   )
+
+   // The speech bubble goes away by itself
+   LaunchedEffect(speech) {
+      if (speech != null) {
+         delay(5000)
+         speech = null
+      }
    }
 
 
@@ -517,7 +625,7 @@ fun HomeScreen(
          onPickUp = { id -> furnitureScope.launch { furnitureRepo.pickUp(id) } }
       )
 
-      // Edit mode hides everything except the room background and the furniture
+      // Edit mode shows only the room background and furniture.
       if (!editMode) {
          // Shadow under the avatar
          Box(
@@ -529,23 +637,31 @@ fun HomeScreen(
          )
 
 
-         // Uses the same avatar parts selected on the Profile screen.
+         // Uses the avatar selected on the Profile screen.
          AvatarView(
             layers = avatarLayers,
             modifier = Modifier
                .fillMaxWidth()
                .height(500.dp)
                .align(Alignment.Center)
+         )
+
+         // Only taps on the avatar open the menu.
+         Box(
+            modifier = Modifier
+               .align(Alignment.Center)
+               .width(AvatarHitWidth)
+               .height(AvatarHitHeight)
                .onGloballyPositioned { coords -> avatarRootPosition = coords.positionInRoot() }
                .pointerInput(Unit) {
                   detectTapGestures(onTap = { local ->
-                     pieMenuCenter = avatarRootPosition + local
+                     menu = MenuState(avatarRootPosition + local)
                   })
                }
          )
 
-         // Keep the progress circles out of the way while the habit menu is open.
-         if (pieMenuCenter == null) {
+         // Hides progress circles while the habit menu is open.
+         if (menu == null) {
             Column(
                modifier = Modifier.align(Alignment.TopEnd).offset(x = (-16).dp, y = 210.dp),
                verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -583,14 +699,37 @@ fun HomeScreen(
             onSyncClick = syncHabits,
             onEditModeClick = {
                // Close anything open on top of the room before editing
-               pieMenuCenter = null
+               menu = null
+               speech = null
                showNewsBoard = false
                selectedFurnitureId = null
                editMode = true
             }
          )
 
-         // Shows when the API is unavailable; habits are still saved locally.
+         // Coins just earned
+         AnimatedVisibility(
+            visible = coinToast != null,
+            modifier = Modifier
+               .align(Alignment.TopCenter)
+               .statusBarsPadding()
+               .padding(top = 64.dp)
+         ) {
+            Text(
+               text = coinToast ?: "",
+               fontSize = 15.sp,
+               fontWeight = FontWeight.ExtraBold,
+               color = Color(0xFF8D6E00),
+               modifier = Modifier
+                  .shadow(6.dp, RoundedCornerShape(50))
+                  .clip(RoundedCornerShape(50))
+                  .background(Color(0xFFFFF3C4))
+                  .border(1.5.dp, Color(0xFFFBC02D), RoundedCornerShape(50))
+                  .padding(horizontal = 16.dp, vertical = 6.dp)
+            )
+         }
+
+         // Shows when the API is offline; habits remain saved locally.
          AnimatedVisibility(
             visible = syncStatus == SyncResult.OFFLINE,
             modifier = Modifier
@@ -687,7 +826,7 @@ fun HomeScreen(
                      }
                   }
 
-                  // Shows progress for the three pinned habits.
+                  // Shows the pinned habits' progress.
                   Spacer(modifier = Modifier.height(8.dp))
                   Row(verticalAlignment = Alignment.CenterVertically) {
                      LinearProgressIndicator(
@@ -713,7 +852,7 @@ fun HomeScreen(
 
                   Spacer(modifier = Modifier.height(6.dp))
 
-                  // The list scrolls when the card is expanded.
+                  // Allows scrolling when the card is expanded.
                   Column(
                      modifier = Modifier
                         .weight(1f, fill = false)
@@ -730,13 +869,18 @@ fun HomeScreen(
 
                      // Show the three pinned habits.
                      pinnedHabits.forEach { item ->
-                        TodoRow(item = item, onToggle = {
-                           val updated = !item.done
-                           saveProgress(item.id, if (updated) 1f else 0f)
-                        })
+                        TodoRow(
+                           item = item,
+                           onToggle = {
+                              val updated = !item.done
+                              saveProgress(item.id, if (updated) 1f else 0f)
+                           },
+                           // Shows the delete icon only when expanded.
+                           onDelete = if (isQuestCardExpanded) ({ habitToDelete = item }) else null
+                        )
                      }
 
-                     // Show the remaining habits when expanded.
+                     // Shows the other habits when expanded.
                      if (isQuestCardExpanded) {
                         Spacer(modifier = Modifier.height(6.dp))
                         HorizontalDivider(thickness = 1.dp, color = Color(0xFFE0E0E0))
@@ -751,10 +895,14 @@ fun HomeScreen(
                         )
 
                         otherHabits.forEach { item ->
-                           TodoRow(item = item, onToggle = {
-                              val updated = !item.done
-                              saveProgress(item.id, if (updated) 1f else 0f)
-                           })
+                           TodoRow(
+                              item = item,
+                              onToggle = {
+                                 val updated = !item.done
+                                 saveProgress(item.id, if (updated) 1f else 0f)
+                              },
+                              onDelete = { habitToDelete = item }
+                           )
                         }
 
                         Spacer(modifier = Modifier.height(6.dp))
@@ -805,48 +953,22 @@ fun HomeScreen(
             }
          }
 
-         // Reward popup
-         if (showRewardPopup) {
-            Card(
-               modifier = Modifier
-                  .width(230.dp)
-                  .align(Alignment.Center),
-               shape = RoundedCornerShape(22.dp),
-               colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
-               border = BorderStroke(2.dp, Color(0xFFFBC02D)),
-               elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
-            ) {
-               Column(
-                  modifier = Modifier.padding(16.dp),
-                  horizontalAlignment = Alignment.CenterHorizontally
-               ) {
-                  Text(
-                     "✨ Quests Complete! ✨",
-                     fontWeight = FontWeight.ExtraBold,
-                     fontSize = 16.sp,
-                     color = Color(0xFFF57F17)
-                  )
-                  Spacer(modifier = Modifier.height(4.dp))
-                  Text("Completed today's 3 habits!", fontSize = 13.sp, color = Color(0xFF5D4037))
-                  Spacer(modifier = Modifier.height(12.dp))
-                  Button(
-                     onClick = {
-                        scope.launch { walletRepo.addCoins(500) }
-                        dailyRewardClaimed = true
-                        showRewardPopup = false
-                     },
-                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFBC02D)),
-                     shape = RoundedCornerShape(50)
-                  ) {
-                     Text(
-                        "Claim 🪙 500",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                     )
+         // Mystery gift
+         if (showGiftPopup) {
+            MysteryGiftPopup(
+               result = giftResult,
+               onOpen = {
+                  scope.launch {
+                     giftResult = walletRepo.openMysteryGift()
+                     context.getSharedPreferences("metrix_prefs", Context.MODE_PRIVATE)
+                        .edit().putString("mystery_gift_date", todayString).apply()
                   }
+               },
+               onClose = {
+                  showGiftPopup = false
+                  giftResult = null
                }
-            }
+            )
          }
 
          // News board
@@ -865,11 +987,33 @@ fun HomeScreen(
 
 
          // Avatar pie menu
-         pieMenuCenter?.let { center ->
+         // What the avatar says after "Fun fact" or "Your thoughts"
+         AnimatedVisibility(
+            visible = speech != null,
+            modifier = Modifier.align(Alignment.Center).offset(y = (-210).dp),
+            enter = expandVertically(),
+            exit = shrinkVertically()
+         ) {
+            Text(
+               text = speech ?: "",
+               fontSize = 13.sp,
+               fontWeight = FontWeight.SemiBold,
+               color = Ink,
+               modifier = Modifier
+                  .widthIn(max = 250.dp)
+                  .shadow(8.dp, RoundedCornerShape(18.dp))
+                  .clip(RoundedCornerShape(18.dp))
+                  .background(Color.White)
+                  .border(1.5.dp, CardBorder, RoundedCornerShape(18.dp))
+                  .padding(horizontal = 14.dp, vertical = 10.dp)
+            )
+         }
+
+         menu?.let { open ->
             AvatarPieMenu(
-               center = center,
-               items = pieMenuItems,
-               onDismiss = { pieMenuCenter = null },
+               center = open.center,
+               items = if (open.level == MenuLevel.ROOT) avatarRootItems else habitMenuItems,
+               onDismiss = { menu = null },
                onAddHabit = { showAddHabitDialog = true }
             )
          }
@@ -897,39 +1041,37 @@ fun HomeScreen(
       }
    }
 
-   // Add habit dialog
-   if (showAddHabitDialog) {
+   // Delete confirmation
+   habitToDelete?.let { habit ->
       AlertDialog(
-         onDismissRequest = { showAddHabitDialog = false; newHabitText = "" },
+         onDismissRequest = { habitToDelete = null },
          shape = RoundedCornerShape(24.dp),
          containerColor = Color.White,
-         title = { Text("New habit", fontWeight = FontWeight.ExtraBold, color = Ink) },
-         text = {
-            OutlinedTextField(
-               value = newHabitText,
-               onValueChange = { newHabitText = it },
-               placeholder = { Text("e.g. Read for 10 minutes") },
-               singleLine = true,
-               shape = RoundedCornerShape(14.dp),
-               keyboardOptions = KeyboardOptions.Default
-            )
-         },
+         title = { Text("Delete habit?", fontWeight = FontWeight.ExtraBold, color = Ink) },
+         text = { Text("\"${habit.label}\" will be removed. Coins you already earned are kept.") },
          confirmButton = {
             TextButton(onClick = {
-               val label = newHabitText.trim()
-               if (label.isNotBlank()) {
-                  // Saves the new habit locally first, then syncs it with the API.
-                  scope.launch {
-                     habitRepo.addHabit(label)
-                     syncHabits()
-                  }
-               }
-               newHabitText = ""
-               showAddHabitDialog = false
-            }) { Text("Add", fontWeight = FontWeight.Bold) }
+               scope.launch { habitRepo.deleteHabit(habit.id.toInt()) }
+               habitToDelete = null
+            }) { Text("Delete", fontWeight = FontWeight.Bold, color = Color(0xFFE53935)) }
          },
          dismissButton = {
-            TextButton(onClick = { showAddHabitDialog = false; newHabitText = "" }) { Text("Cancel") }
+            TextButton(onClick = { habitToDelete = null }) { Text("Cancel") }
+         }
+      )
+   }
+
+   // Add habit dialog: name, times per day, icon and colour
+   if (showAddHabitDialog) {
+      NewHabitDialog(
+         onDismiss = { showAddHabitDialog = false },
+         onCreate = { label, targetCount, iconKey, colorHex ->
+            // Saves the habit locally before syncing.
+            scope.launch {
+               habitRepo.addHabit(label, targetCount, iconKey, colorHex)
+               syncHabits()
+            }
+            showAddHabitDialog = false
          }
       )
    }
@@ -1034,7 +1176,7 @@ fun LiquidHabitCircle(
 
 // Compact to-do row
 @Composable
-fun TodoRow(item: TodoItem, onToggle: () -> Unit) {
+fun TodoRow(item: TodoItem, onToggle: () -> Unit, onDelete: (() -> Unit)? = null) {
    Row(
       modifier = Modifier
          .fillMaxWidth()
@@ -1073,6 +1215,19 @@ fun TodoRow(item: TodoItem, onToggle: () -> Unit) {
          fontWeight = FontWeight.SemiBold,
          color = if (item.done) Color(0xFFCCCCCC) else InkSoft
       )
+
+      // Delete (asks to confirm first)
+      if (onDelete != null) {
+         Spacer(modifier = Modifier.width(2.dp))
+         IconButton(onClick = onDelete, modifier = Modifier.size(26.dp)) {
+            Icon(
+               Icons.Default.Delete,
+               contentDescription = "Delete habit",
+               tint = Color(0xFFB0BEC5),
+               modifier = Modifier.size(16.dp)
+            )
+         }
+      }
    }
 }
 
@@ -1300,7 +1455,7 @@ fun StepsChip(
 // Avatar pie menu
 
 
-// Shows each habit in a small pill beside the avatar. Selecting one adds 25% progress.
+// Shows habits beside the avatar; selecting one adds progress.
 @Composable
 fun AvatarPieMenu(
    center: Offset,
@@ -1353,25 +1508,27 @@ fun AvatarPieMenu(
       val rightX = (leftX + pillWidth + columnGap).coerceAtMost(screenW - pillWidth - 8.dp)
 
       pillItems.forEachIndexed { index, item ->
-         val column = index % 2
-         val row = index / 2
-         val x = if (column == 0) leftX else rightX
-         val y = top + (pillHeight + rowGap) * row
+         key(item.id) {
+            val column = index % 2
+            val row = index / 2
+            val x = if (column == 0) leftX else rightX
+            val y = top + (pillHeight + rowGap) * row
 
-         Row(
-            modifier = Modifier
-               .offset(x = x, y = y)
-               .width(pillWidth),
-            horizontalArrangement = Arrangement.Center
-         ) {
-            AvatarActionPill(
-               item = item,
-               index = index,
-               onClick = {
-                  item.onSelect()
-                  onDismiss()
-               }
-            )
+            Row(
+               modifier = Modifier
+                  .offset(x = x, y = y)
+                  .width(pillWidth),
+               horizontalArrangement = Arrangement.Center
+            ) {
+               AvatarActionPill(
+                  item = item,
+                  index = index,
+                  onClick = {
+                     item.onSelect()
+                     if (!item.keepOpen) onDismiss()
+                  }
+               )
+            }
          }
       }
    }
@@ -1380,7 +1537,7 @@ fun AvatarPieMenu(
 // Displays a habit's icon, name and progress.
 @Composable
 private fun AvatarActionPill(item: PieMenuItem, index: Int, onClick: () -> Unit) {
-   // Adds a short delay so the pills appear one after another.
+   // Staggers the habit pill animations.
    var shown by remember { mutableStateOf(false) }
    LaunchedEffect(Unit) {
       delay(index * 60L)
@@ -1392,7 +1549,7 @@ private fun AvatarActionPill(item: PieMenuItem, index: Int, onClick: () -> Unit)
       label = "pillAppear"
    )
 
-   // Shrinks the pill slightly while it is pressed.
+   // Shrinks the pill while pressed.
    val interaction = remember { MutableInteractionSource() }
    val pressed by interaction.collectIsPressedAsState()
    val pressScale by animateFloatAsState(
@@ -1444,7 +1601,9 @@ private fun AvatarActionPill(item: PieMenuItem, index: Int, onClick: () -> Unit)
       if (item.progress > 0f) {
          Spacer(modifier = Modifier.width(6.dp))
          Text(
-            text = "${(item.progress * 100).toInt()}%",
+            // Shows a count for multi-step habits and a percentage for daily habits.
+            text = if (item.targetCount > 1) "${doneCount(item.progress, item.targetCount)}/${item.targetCount}"
+            else "${(item.progress * 100).toInt()}%",
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF7C93B0)
@@ -1516,7 +1675,7 @@ fun JetpackTopNavbar(
          }
       }
 
-      // Right-side menu and shortcuts.
+      // Right-side shortcuts and menu.
       Row(
          modifier = Modifier
             .height(IntrinsicSize.Min)
@@ -1538,7 +1697,7 @@ fun JetpackTopNavbar(
                )
             }
 
-            // Styles the dropdown to match the rest of the navigation bar.
+            // Matches the dropdown to the navigation bar.
             DropdownMenu(
                expanded = showMoreMenu,
                onDismissRequest = { showMoreMenu = false },
@@ -1658,7 +1817,7 @@ fun JetpackTopNavbar(
          NavDivider()
 
 
-         // Shows the unread indicator on the news icon.
+         // Shows a dot when there is unread news.
          Box {
             NavStripIcon(onClick = onNewsClick, leadingPadding = 12.dp) {
                Icon(Icons.Default.Article, contentDescription = "News", tint = NavbarIcon, modifier = Modifier.size(17.dp))
@@ -1707,7 +1866,6 @@ private fun NavStripIcon(
    }
 }
 /*References
-
 Teergarden, C., 2023. Mastering Lazy Lists in Jetpack Compose with Data Classes and MVI. (Version 10.0) [Source Code]. Available at: < https://proandroiddev.com/mastering-lazy-lists-in-jetpack-compose-with-data-classes-and-mvi-da240800c6e9 > [Accessed 21 September 2026]
 Kavi, R., 2026. Mastering High-Performance Custom Canvas animations in jetpack compose: building a premium circular progress indicator. (Version 10.0) [Source Code]. Available at: < https://raghunandan2005.medium.com/mastering-high-performance-custom-canvas-animations-in-jetpack-compose-building-a-premium-circular-b9f9e465b118 > [Accessed 21 September 2026]
 Malla, M., 2023. Jetsurvey. (Version 10.0) [Source Code]. Available at: < https://github.com/ManasMalla/Jetsurvey > [Accessed 21 September 2026]

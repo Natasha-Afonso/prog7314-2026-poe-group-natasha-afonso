@@ -7,6 +7,12 @@ import kotlinx.coroutines.flow.map
 // Result of trying to buy something in the shop
 enum class PurchaseResult { SUCCESS, NOT_ENOUGH_COINS, UNKNOWN_ITEM }
 
+// What the mystery gift turned out to be
+sealed interface GiftResult {
+    data class Coins(val amount: Int) : GiftResult
+    data class Furniture(val item: FurnitureDef) : GiftResult
+}
+
 // REPOSITORY
 // Sits between the UI and the DAOs so screens never talk to the database directly (Gaur, 2025).
 // This is the one place coins are changed: the home screen reward and the shop both use it.
@@ -24,6 +30,21 @@ class WalletRepository(context: Context) {
     suspend fun ensureWallet() = walletDao.createIfMissing(STARTING_COINS)
 
     suspend fun addCoins(amount: Int) = walletDao.add(amount)
+
+    // Opens the mystery gift (3 goals finished in one day): 100 coins, 500 coins, 1000 coins or a
+    // piece of furniture from the shop, each equally likely.
+    suspend fun openMysteryGift(): GiftResult {
+        return when (kotlin.random.Random.nextInt(4)) {
+            0 -> GiftResult.Coins(100).also { walletDao.add(100) }
+            1 -> GiftResult.Coins(500).also { walletDao.add(500) }
+            2 -> GiftResult.Coins(1000).also { walletDao.add(1000) }
+            else -> {
+                val gift = FurnitureCatalog.items.random()
+                furnitureDao.insert(FurnitureEntity(itemKey = gift.key))
+                GiftResult.Furniture(gift)
+            }
+        }
+    }
 
     // Pays for a piece of furniture and puts it in the inventory (shown in edit mode)
     suspend fun buyFurniture(itemKey: String): PurchaseResult {
