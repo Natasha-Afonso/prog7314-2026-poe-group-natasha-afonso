@@ -5,10 +5,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,6 +45,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val context = LocalContext.current
+    val colorThemeStore = remember { ColorThemeStore(context) }
     val profileViewModel : ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
     val authViewModel : AuthViewModel = viewModel(factory = AuthView2(context))
     val uiState by authViewModel.uiState.collectAsState() //getting the state so we user does not have to login everytime they open the app after login
@@ -100,10 +104,15 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
     AppTheme(
         theme = currentSettings.theme,
         fontSize = currentSettings.fontSize,
-        highContrast = currentSettings.highContrast
-    ) {
+        highContrast = currentSettings.highContrast,
+        colorTheme = colorThemeStore.colorTheme
+    )
 
-
+        {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ){
 //navigation code for each screen
         Box(modifier = Modifier.fillMaxSize()) {
             NavHost(
@@ -193,6 +202,14 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 
                             settingsViewModel.updateTheme(newTheme)
                         }
+        // Themes
+                composable("themes") {
+                    ThemesScreen(
+                        navController = navController,
+                        currentTheme = currentSettings.theme,
+                        onThemeChange = { settingsViewModel.updateTheme(it) },
+                        currentColorTheme = colorThemeStore.colorTheme,
+                        onColorThemeChange = { colorThemeStore.select(it) }
                     )
                 }
 
@@ -270,7 +287,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                         }
                     )
                 }
-            }}}}
+            }}}}}
 
 /*References
 *

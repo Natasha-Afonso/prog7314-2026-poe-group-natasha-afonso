@@ -55,9 +55,16 @@ const val IRIS_ALPHA = 0xB7 / 255f         // the XML iris tint #B7240C0C is ~72
 // BASE BODY: chosen with the arrows next to the avatar
 
 val bodyOptions = listOf(
-    AvatarPart("base_body_f", R.drawable.base_body_f, listOf(AvatarLayer(R.drawable.base_body_f)))
-    // AvatarPart("base_body_f2", R.drawable.base_body_f2, listOf(AvatarLayer(R.drawable.base_body_f2))),
-)
+    AvatarPart("base_body_f", R.drawable.base_body_f, listOf(AvatarLayer(R.drawable.base_body_f))),
+    AvatarPart("base_body_e", R.drawable.base_body_e, listOf(AvatarLayer(R.drawable.base_body_e))),
+    AvatarPart("base_body_g", R.drawable.base_body_g, listOf(AvatarLayer(R.drawable.base_body_g))),
+    AvatarPart("base_body_b", R.drawable.base_body_b, listOf(AvatarLayer(R.drawable.base_body_b))),
+    AvatarPart("base_body_h", R.drawable.base_body_h, listOf(AvatarLayer(R.drawable.base_body_h))),
+    AvatarPart("base_body_l", R.drawable.base_body_l, listOf(AvatarLayer(R.drawable.base_body_l))),
+    AvatarPart("base_body_v", R.drawable.base_body_v, listOf(AvatarLayer(R.drawable.base_body_v))),
+    AvatarPart("base_body_b", R.drawable.base_body_b, listOf(AvatarLayer(R.drawable.base_body_b))),
+    AvatarPart("base_body_c", R.drawable.base_body_c, listOf(AvatarLayer(R.drawable.base_body_c))),
+    )
 
 
 // HAIR PANEL: two lists side by side
@@ -131,8 +138,11 @@ val mouthOptions = listOf(
     AvatarPart(
         "mouth_9", R.drawable.mouth_9,
         listOf(AvatarLayer(R.drawable.mouth_9, FullCanvas))
-    )
-
+    ),
+            AvatarPart(
+            "smile_mouth", R.drawable.smile_mouth,
+    listOf(AvatarLayer(R.drawable.smile_mouth, FullCanvas))
+)
 
 )
 

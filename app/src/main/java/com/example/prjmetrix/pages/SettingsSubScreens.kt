@@ -13,6 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 
 // Pawar, 2026
 // Language screen
@@ -138,14 +142,12 @@ fun LanguageScreen(navController: NavController) {
 fun ThemesScreen(
     navController: NavController,
     currentTheme: String,
-    onThemeChange: (String) -> Unit
+    onThemeChange: (String) -> Unit,
+    currentColorTheme: String,
+    onColorThemeChange: (String) -> Unit
 ) {
 
-    val themes = listOf(
-        "System",
-        "Light",
-        "Dark"
-    )
+    val themes = listOf("System", "Light", "Dark")
 
     Column(
         modifier = Modifier
@@ -154,16 +156,8 @@ fun ThemesScreen(
             .padding(20.dp)
     ) {
 
-
-        TextButton(
-            onClick = {
-                navController.popBackStack()
-            }
-        ) {
-            Text(
-                text = "← Back",
-                style = MaterialTheme.typography.labelLarge
-            )
+        TextButton(onClick = { navController.popBackStack() }) {
+            Text(text = "← Back", style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -190,9 +184,7 @@ fun ThemesScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 5.dp)
-                    .clickable {
-                        onThemeChange(theme)
-                    },
+                    .clickable { onThemeChange(theme) },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (currentTheme == theme) {
@@ -210,9 +202,7 @@ fun ThemesScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
 
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    Column(modifier = Modifier.weight(1f)) {
 
                         Text(
                             text = theme,
@@ -235,9 +225,55 @@ fun ThemesScreen(
 
                     RadioButton(
                         selected = currentTheme == theme,
-                        onClick = {
-                            onThemeChange(theme)
-                        }
+                        onClick = { onThemeChange(theme) }
+                    )
+                }
+            }
+        }
+
+        // ---- NEW: colour picker ----
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Colours",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            listOf(
+                "Default" to Color(0xFF7A3E3E),
+                "Ocean" to Color(0xFF1E6091),
+                "Forest" to Color(0xFF2D6A4F),
+                "Sunset" to Color(0xFFD1495B)
+            ).forEach { (name, swatch) ->
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(swatch)
+                            .border(
+                                width = if (currentColorTheme == name) 3.dp else 0.dp,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                shape = CircleShape
+                            )
+                            .clickable { onColorThemeChange(name) }
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
             }
