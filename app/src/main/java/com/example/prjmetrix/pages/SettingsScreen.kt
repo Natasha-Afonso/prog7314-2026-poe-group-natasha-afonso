@@ -578,7 +578,7 @@ fun SettingsContent(
 
                         Image(
                             painter = painterResource(
-                                id = R.drawable.access //change to a fingerprint icon
+                                id = R.drawable.fingerprint
                             ),
                             contentDescription = "Biometric Login",
                             colorFilter = ColorFilter.tint(
@@ -622,7 +622,7 @@ fun SettingsContent(
 
                     //create or change the fallback PIN
                     SettingsRow(
-                        iconRes = R.drawable.access, //change to a lock icon
+                        iconRes = R.drawable.pin,
                         label = if (hasPin) "Change PIN" else "Set up PIN",
                         tintIcon = true,
                         onClick = onPinClick
