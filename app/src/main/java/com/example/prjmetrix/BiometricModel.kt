@@ -2,7 +2,7 @@ package com.example.prjmetrix
 
 //(Simplified Coding, 2021)
 //data classes must match the DTOs in BiometricDto class in backend
-data class BiometricStatus (
+data class BiometricStatusResponse (
     val hasPin: Boolean,
     val biometricEnabled: Boolean
 )

@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,9 +51,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prjmetrix.AuthViewModel
+import com.example.prjmetrix.BiometricPromptManager
+import com.example.prjmetrix.BiometricViewModel
 import com.example.prjmetrix.R
 import com.example.prjmetrix.SettingsUiState
 import com.example.prjmetrix.SettingsViewModel
+import com.example.prjmetrix.findFragmentActivity
 import kotlinx.coroutines.launch
 
 
@@ -71,10 +75,15 @@ val SettingsBgBlue = Color(0xFFF5F7FA)
 fun SettingsScreen(
     navController: NavController,
     authViewModel: AuthViewModel,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    biometricViewModel: BiometricViewModel
 ) {
 //(Dawe, 2024)
     val uiState by settingsViewModel.uiState.collectAsState()
+
+    //biometric state and context needed for the fingerprint prompt
+    val biometricState by biometricViewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     val snackbarHostState = remember {
         SnackbarHostState()
@@ -82,9 +91,58 @@ fun SettingsScreen(
 
     val scope = rememberCoroutineScope()
 
+    //controls the create / change PIN screen
+    var showPinDialog by remember {
+        mutableStateOf(false)
+    }
+
+    // \true when the user turned biometric on but still had to create a PIN first
+    var enableBiometricAfterPin by remember {
+        mutableStateOf(false)
+    }
+
     // Load the user's settings when the screen opens
     LaunchedEffect(Unit) {
         settingsViewModel.loadSettings()
+        biometricViewModel.loadStatus()
+    }
+
+    //(Gupta, 2025)
+    // the user scans once to prove the scanner works, THEN biometric is turned on
+    val confirmAndEnableBiometric: () -> Unit = {
+
+        val activity = context.findFragmentActivity()
+
+        if (activity != null) {
+
+            BiometricPromptManager.prompt(
+                activity = activity,
+                title = "Turn on biometric login",
+                subtitle = "Scan your fingerprint or face to confirm",
+
+                onSuccess = {
+                    biometricViewModel.setBiometric(true) { saved ->
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                if (saved) {
+                                    "Biometric login is on"
+                                } else {
+                                    "Couldn't save. Check your connection."
+                                }
+                            )
+                        }
+                    }
+                },
+
+                onFallback = {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            "Biometric login was not turned on"
+                        )
+                    }
+                }
+            )
+        }
     }
 
     SettingsContent(
@@ -144,6 +202,7 @@ fun SettingsScreen(
         },
 
         onLogOut = {
+            biometricViewModel.onLoggedOut()
             authViewModel.signOut()
             navController.navigate("login")
             {
@@ -153,8 +212,72 @@ fun SettingsScreen(
                 }
                 launchSingleTop = true
             }
+        },
+
+        biometricEnabled = biometricState.biometricEnabled,
+        hasPin = biometricState.hasPin,
+
+        onBiometricToggle = { enable ->
+
+            when {
+                //turning it off
+                !enable -> biometricViewModel.setBiometric(false)
+
+                //phone has no fingerprint or face added
+                !BiometricPromptManager.isAvailable(context) -> scope.launch {
+                    snackbarHostState.showSnackbar(
+                        "No fingerprint or face is set up on this phone. Add one in your phone's settings first."
+                    )
+                }
+
+                //user must create a PIN first as the fallback
+                !biometricState.hasPin -> {
+                    enableBiometricAfterPin = true
+                    showPinDialog = true
+                }
+
+                else -> confirmAndEnableBiometric()
+            }
+        },
+
+        onPinClick = {
+            enableBiometricAfterPin = false
+            showPinDialog = true
         }
     )
+
+    // create or change PIN screen
+    if (showPinDialog) {
+
+        SetPinDialog(
+            onDismiss = {
+                showPinDialog = false
+            },
+
+            onSubmit = { newPin, onDone ->
+
+                biometricViewModel.savePin(newPin) { result ->
+
+                    onDone(result)
+
+                    if (result.success) {
+
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                "PIN saved"
+                            )
+                        }
+
+                        //biometric was waiting for the PIN to be created
+                        if (enableBiometricAfterPin) {
+                            enableBiometricAfterPin = false
+                            confirmAndEnableBiometric()
+                        }
+                    }
+                }
+            }
+        )
+    }
 }
 
 
@@ -173,7 +296,11 @@ fun SettingsContent(
     onNotificationsToggle: (Boolean) -> Unit = {},
     onSubmitBug: (String, String) -> Unit = { _, _ -> },
     onSubmitRating: (Int, String?) -> Unit = { _, _ -> },
-    onLogOut: () -> Unit = {}
+    onLogOut: () -> Unit = {},
+    biometricEnabled: Boolean = false,
+    hasPin: Boolean = false,
+    onBiometricToggle: (Boolean) -> Unit = {},
+    onPinClick: () -> Unit = {}
 ) {
 
     var showBugDialog by remember {
@@ -429,6 +556,77 @@ fun SettingsContent(
                             )
                         )
                     }
+
+
+                    //biometric login setting
+                    HorizontalDivider(
+                        color = DividerLight,
+                        thickness = 1.dp
+                    )
+
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 18.dp,
+                                vertical = 14.dp
+                            ),
+
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Image(
+                            painter = painterResource(
+                                id = R.drawable.access //change to a fingerprint icon
+                            ),
+                            contentDescription = "Biometric Login",
+                            colorFilter = ColorFilter.tint(
+                                SectionLabel
+                            ),
+                            modifier = Modifier.size(22.dp)
+                        )
+
+
+                        Text(
+                            text = "Biometric Login",
+                            fontSize = 17.sp,
+                            color = SettingsTitle,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 14.dp)
+                        )
+
+
+                        Switch(
+                            checked = biometricEnabled,
+
+                            onCheckedChange =
+                                onBiometricToggle,
+
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = SectionLabel,
+                                uncheckedThumbColor = SectionLabel,
+                                uncheckedTrackColor = DividerLight
+                            )
+                        )
+                    }
+
+
+                    HorizontalDivider(
+                        color = DividerLight,
+                        thickness = 1.dp
+                    )
+
+
+                    //create or change the fallback PIN
+                    SettingsRow(
+                        iconRes = R.drawable.access, //change to a lock icon
+                        label = if (hasPin) "Change PIN" else "Set up PIN",
+                        tintIcon = true,
+                        onClick = onPinClick
+                    )
                 }
             }
 
@@ -882,6 +1080,6 @@ fun SettingsRow(
 /*References
 *Dawe, L. 2024.ViewModel Event Publishing in Jetpack Compose Using Flows. [source code]. Available at:<https://medium.com/@luke.dawe/ui-event-handling-in-jetpack-compose-using-flows-for-snackbars-30c3fb163278> [Accessed 19 September 2026]
 * Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
-*
+* RajatDGupta, 2025. Biometric_Authentication. (Version 10.0) [source code]. Available at: < https://github.com/RajatDGupta/Biometric_Authentication > [Accessed 24 October 2026]
 *
 * */
