@@ -21,7 +21,7 @@ data class BiometricUiState(
 //(Easy Tuto, 2024)
 class BiometricViewModel(private val repository: BiometricRepository) : ViewModel() {
 
-    //(Vilarino, 2021)
+    //(Guell, 2021)
     //if biometric was on when the app closed then the lock screen shows as soon as it opens again
     private val _uiState = MutableStateFlow(
         BiometricUiState(
@@ -123,7 +123,7 @@ class BiometricViewModel(private val repository: BiometricRepository) : ViewMode
 
     fun unlock() = _uiState.update { it.copy(isLocked = false) }
 
-    //(Vilarino, 2021)
+    //(Guell, 2021)
     //app locks again if it was in the background for 30 seconds or more
     fun onAppBackgrounded() {
         backgroundedAt = SystemClock.elapsedRealtime()
@@ -156,6 +156,6 @@ class BiometricViewModel(private val repository: BiometricRepository) : ViewMode
 * Alpasian, E., 2023. DiaryApp. (Version 10.0) [Source code]. Available at: < https://github.com/erenalpaslan/DiaryApp > [Accessed 19 September 2026]
 * Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
 * Sharma, S., 2024. Mood-Journal. (Version 10.0) [Source code]. Available at: < https://github.com/SakshamSharma2026/Mood-Journal > [Accessed 21 September 2026]
-* Vilarino, F., 2021. Adding a PIN screen with biometric authentication in Jetpack Compose. [source code]. Available at: < https://fvilarino.medium.com/adding-a-pin-screen-with-biometric-authentication-in-jetpack-compose-a9bf7bd8acc9 > [Accessed 24 October 2026]
+* Guell, F., V., 2021. Adding a PIN screen with biometric authentication in Jetpack Compose. [source code]. Available at: < https://fvilarino.medium.com/adding-a-pin-screen-with-biometric-authentication-in-jetpack-compose-a9bf7bd8acc9 > [Accessed 24 October 2026]
 *
 */

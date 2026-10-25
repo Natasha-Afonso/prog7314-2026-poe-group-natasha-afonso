@@ -35,13 +35,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.prjmetrix.BiometricResponse
 
-//(Vilarino, 2021)
-//PIN screen built from the bottom up, dots then number pad then the entry then the dialog
-//colours used come from SettingsScreen.kt because its the same package
-
+//(Guell, 2021)
 private const val PIN_LENGTH = 4
 
-//the 4 dots that fill up as the user types their PIN, they turn red when the PIN is wrong
+//the 4 dots that fill up as the user types their PIN,
 @Composable
 fun PinDots(filled: Int, hasError: Boolean = false) {
 
@@ -57,7 +54,7 @@ fun PinDots(filled: Int, hasError: Boolean = false) {
                     .clip(CircleShape)
                     .background(
                         when {
-                            hasError -> LogoutRed
+                            hasError -> LogoutRed //Wrong pin entered and the dots turn red
                             index < filled -> SectionLabel
                             else -> MutedGray
                         }
@@ -76,6 +73,7 @@ fun PinPad(
     onDelete: () -> Unit
 ) {
 
+    //(Android Developer, 2026)
     val rows = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
@@ -137,9 +135,7 @@ fun PinPad(
     }
 }
 
-
-//collects 4 digits then gives them to onComplete and clears itself
-//resetKey is changed to clear the dots again after a wrong PIN
+//(Vladmir, 2026)
 @Composable
 fun PinEntry(
     title: String,
@@ -233,15 +229,14 @@ fun PinEntry(
 //turns the API response into the message shown under the dots
 fun pinErrorText(result: BiometricResponse): String? = when {
     result.success -> null
-    result.locked -> "Too many attempts. Try again in ${(result.retryAfterSeconds + 59) / 60} min."
+    result.locked -> "Too many attempts. Try again in ${(result.retryAfterSeconds + 59) / 60} min." //(Coddy, 2026)
     result.attemptsRemaining > 0 -> "${result.message ?: "Incorrect PIN."} ${result.attemptsRemaining} attempts left."
     else -> result.message ?: "Something went wrong."
 }
 
 
-//(AlexRaya25, 2024)
+// (Guell, 2021)
 //full screen dialog where the user creates or changes their PIN, enter a new PIN then confirm it
-//old PIN is not asked for because the user is already logged in
 @Composable
 fun SetPinDialog(
     onDismiss: () -> Unit,
@@ -311,7 +306,7 @@ fun SetPinDialog(
                     error = null
 
                     if (!confirming) {
-                        //first PIN entered, now ask them to confirm it
+                        //first PIN entered, now user must confirm it
                         firstPin = pin
                         confirming = true
                     } else if (pin != firstPin) {
@@ -357,7 +352,8 @@ fun SetPinDialog(
 
 /*References
 *
-* AlexRaya25, 2024. BiometricCompose. (Version 10.0) [source code]. Available at: < https://github.com/AlexRaya25/BiometricCompose > [Accessed 24 October 2026]
-* Vilarino, F., 2021. Adding a PIN screen with biometric authentication in Jetpack Compose. [source code]. Available at: < https://fvilarino.medium.com/adding-a-pin-screen-with-biometric-authentication-in-jetpack-compose-a9bf7bd8acc9 > [Accessed 24 October 2026]
-*
+* Android Developer, 2026. Use collection in Kotlin. (Version 10.0) [source code]. Available at: < https://developer.android.com/codelabs/basic-android-kotlin-collections#2 > [Accessed 25 October 2026]
+* Coddy, 2026. Arithmetic Operators. (Version 10.0) [source code]. Available at: < https://coddy.tech/learn/kotlin/fundamentals/arithmetic_operators > [Accessed 25 October 2026]
+* Guell, F., V., 2021. Adding a PIN screen with biometric authentication in Jetpack Compose. [source code]. Available at: < https://fvilarino.medium.com/adding-a-pin-screen-with-biometric-authentication-in-jetpack-compose-a9bf7bd8acc9 > [Accessed 24 October 2026]
+* Vladmir, K., 2026. Adnroid pin authentication. (Version 10.0) [source code]. Available at: < https://github.com/Khokhlinvladimir/android-pin-authentication > [Accessed 25 October 2026]
 * */

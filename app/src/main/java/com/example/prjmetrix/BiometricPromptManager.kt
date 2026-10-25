@@ -39,6 +39,7 @@ object BiometricPromptManager {
             }
         }
 
+        //(Android Developers, 20260
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
@@ -50,7 +51,7 @@ object BiometricPromptManager {
     }
 }
 
-//BiometricPrompt needs a FragmentActivity but in compose the context can be wrapped so this unwraps it
+//(StackOverflow, 2024)
 fun Context.findFragmentActivity(): FragmentActivity? {
     var activity: Context? = this
     while (activity is ContextWrapper) {
@@ -62,6 +63,8 @@ fun Context.findFragmentActivity(): FragmentActivity? {
 
 /*References
 *
-*  Gonzalez, J., 2024. BiometricAuth. (Version 10.0) [source code]. Available at: < https://github.com/DeveloperJGV/BiometricAuth/blob/main/app/src/main/java/com/aviva/biometricauth/BiometricPromptManager.kt > [Accessed 24 October 2026]
+* Android Developers, 2026. Show biometric authentication dialog. (Version 10.0) [source code]. Available at: < https://developer.android.com/identity/sign-in/biometric-auth > [Accessed 25 October 2026]
+* Gonzalez, J., 2024. BiometricAuth. (Version 10.0) [source code]. Available at: < https://github.com/DeveloperJGV/BiometricAuth/blob/main/app/src/main/java/com/aviva/biometricauth/BiometricPromptManager.kt > [Accessed 24 October 2026]
 * Lath, M., 2024. How to Implement Biometric Authentication with Jetpack Compose and AES Encryption. (Version 10.0) [source code]. Available at: < https://blog.canopas.com/how-to-implement-biometric-authentication-with-jetpack-compose-and-aes-encryption-1b72cfccf4d4 > [Accessed 24 October 2026]
+* StackOverflow, 2024. Getting activity from context. (Version 10.0) [source code]. Available at: < https://stackoverflow.com/questions/9891360/getting-activity-from-context-in-android > [Accessed 25 October 2026]
 * */

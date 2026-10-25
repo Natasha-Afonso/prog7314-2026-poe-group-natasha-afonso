@@ -108,7 +108,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
         highContrast = currentSettings.highContrast
     ) {
 
-        //(Vilarino, 2021)
+        //(Guell, 2021)
         AppLockGate(
             biometricViewModel = biometricViewModel,
             isLoggedIn = uiState.isAuthenticated,
@@ -295,6 +295,6 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
 *
 * Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
 * Saeed, M., 2019. ViewModel with ViewModelProvider.Factpry: The creator of ViewModel. (Version 10.0) [source code]. Available at: < https://medium.com/koderlabs/viewmodel-with-viewmodelprovider-factory-the-creator-of-viewmodel-8fabfec1aa4f > [Accessed 19 September 2026]
-* Vilarino, F., 2021. Adding a PIN screen with biometric authentication in Jetpack Compose. [source code]. Available at: < https://fvilarino.medium.com/adding-a-pin-screen-with-biometric-authentication-in-jetpack-compose-a9bf7bd8acc9 > [Accessed 24 October 2026]
+* Guell, V., F.,  2021. Adding a PIN screen with biometric authentication in Jetpack Compose. (Version 10.0) [source code]. Available at: < https://fvilarino.medium.com/adding-a-pin-screen-with-biometric-authentication-in-jetpack-compose-a9bf7bd8acc9 > [Accessed 24 October 2026]
 *
 * */

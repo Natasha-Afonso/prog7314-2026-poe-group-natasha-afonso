@@ -28,11 +28,7 @@ import com.example.prjmetrix.BiometricResponse
 import com.example.prjmetrix.BiometricViewModel
 import com.example.prjmetrix.findFragmentActivity
 
-//(Vilarino, 2021)
-//wraps the whole app (the NavHost) in MainActivity
-//when biometric login is ON and the app opens or comes back after 30 seconds the lock screen covers the app
-//fingerprint or face is tried first and the 4 digit PIN is the fallback
-//onForgotPin signs the user out and sends them to login (done in MainActivity)
+//(Guell, 2021)
 @Composable
 fun AppLockGate(
     biometricViewModel: BiometricViewModel,
@@ -70,7 +66,7 @@ fun AppLockGate(
 
         content()
 
-        //lock screen only shows over the app when the user is logged in and locked
+        //lock screen only shows over the app when the user is logged in and locked (their app security is on)
         if (isLoggedIn && state.isLocked) {
 
             AppLockScreen(
@@ -79,6 +75,7 @@ fun AppLockGate(
                 onBiometricClick = {
                     context.findFragmentActivity()?.let { activity ->
 
+                        //(Android Developers, 2026)
                         BiometricPromptManager.prompt(
                             activity = activity,
                             title = "Unlock MeTrix",
@@ -103,7 +100,7 @@ fun AppLockGate(
     }
 }
 
-
+//(Gonzalez, 2024)
 //the lock screen
 @Composable
 fun AppLockScreen(
@@ -125,14 +122,13 @@ fun AppLockScreen(
         mutableStateOf(0)
     }
 
-    //tries the fingerprint or face as soon as the lock screen appears
+    //user can try the fingerprint or face as soon as the lock screen appears
     LaunchedEffect(Unit) {
         if (biometricAvailable) {
             onBiometricClick()
         }
     }
 
-    //Surface is solid and blocks touches so nothing underneath can be tapped
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = SettingsBgBlue
@@ -165,6 +161,7 @@ fun AppLockScreen(
             }
 
 
+            //(Android Developers, 2026)
             if (biometricAvailable) {
 
                 TextButton(
@@ -193,7 +190,8 @@ fun AppLockScreen(
 
 /*References
 *
-* DeveloperJGV, 2024. BiometricAuth. (Version 10.0) [source code]. Available at: < https://github.com/DeveloperJGV/BiometricAuth > [Accessed 24 October 2026]
-* Vilarino, F., 2021. Adding a PIN screen with biometric authentication in Jetpack Compose. [source code]. Available at: < https://fvilarino.medium.com/adding-a-pin-screen-with-biometric-authentication-in-jetpack-compose-a9bf7bd8acc9 > [Accessed 24 October 2026]
+* Android Developers, 2026. Show biometric authentication dialog. (Version 10.0) [source code]. Available at: < https://developer.android.com/identity/sign-in/biometric-auth > [Accessed 25 October 2026]
+* Gonzalez, J., 2024. BiometricAuth. (Version 10.0) [source code]. Available at: < https://github.com/DeveloperJGV/BiometricAuth > [Accessed 24 October 2026]
+* Guell, F.,V., 2021. Adding a PIN screen with biometric authentication in Jetpack Compose. [source code]. Available at: < https://fvilarino.medium.com/adding-a-pin-screen-with-biometric-authentication-in-jetpack-compose-a9bf7bd8acc9 > [Accessed 24 October 2026]
 *
 * */

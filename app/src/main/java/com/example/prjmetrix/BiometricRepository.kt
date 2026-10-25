@@ -11,8 +11,7 @@ class BiometricRepository(context: Context) {
     //calls the object NetworkRepository to create the retrofit builder
     private val api = NetworkRepository.create(context, BiometricApi::class.java)
 
-    //only the on/off switch is saved on the phone (not a secret), so the lock screen can show straight away when the app opens
-    //the PIN is never saved on the phone, only the hash in the database
+    //only the on/off switch is saved on the phone, so the lock screen can show straight away when the app opens
     private val prefs = context.applicationContext.getSharedPreferences("metrix_biometric", Context.MODE_PRIVATE)
 
     var cachedBiometricEnabled: Boolean

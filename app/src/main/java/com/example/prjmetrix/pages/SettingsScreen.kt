@@ -1078,8 +1078,8 @@ fun SettingsRow(
 
 
 /*References
-*Dawe, L. 2024.ViewModel Event Publishing in Jetpack Compose Using Flows. [source code]. Available at:<https://medium.com/@luke.dawe/ui-event-handling-in-jetpack-compose-using-flows-for-snackbars-30c3fb163278> [Accessed 19 September 2026]
+* Dawe, L. 2024.ViewModel Event Publishing in Jetpack Compose Using Flows. [source code]. Available at:<https://medium.com/@luke.dawe/ui-event-handling-in-jetpack-compose-using-flows-for-snackbars-30c3fb163278> [Accessed 19 September 2026]
 * Easy Tuto, 2024. All about Firebase Authentication | Login & Signup | Jetpack Compose. [video online] [source code]. Available at: < https://youtu.be/KOnLpNZ4AFc?si=EzwUWn7z8ZZkb4aU > [Accessed 18 September 2026]
-* RajatDGupta, 2025. Biometric_Authentication. (Version 10.0) [source code]. Available at: < https://github.com/RajatDGupta/Biometric_Authentication > [Accessed 24 October 2026]
+* Gupta, R., 2025. Biometric_Authentication. (Version 10.0) [source code]. Available at: < https://github.com/RajatDGupta/Biometric_Authentication > [Accessed 24 October 2026]
 *
 * */

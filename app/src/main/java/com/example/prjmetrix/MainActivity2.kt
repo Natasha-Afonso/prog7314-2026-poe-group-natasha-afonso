@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.FragmentActivity
 import com.example.prjmetrix.pages.SettingsScreen
 
-class MainActivity2 : FragmentActivity() {
+class MainActivity2 : FragmentActivity() { //was ComponentActivity
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

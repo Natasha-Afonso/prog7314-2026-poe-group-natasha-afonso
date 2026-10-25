@@ -31,6 +31,6 @@ interface BiometricApi {
 
 /*References
 *
-* Simplified Coding, 2021. #12 Android Login/Signup with MVVM - user Logout [video online] [source code]. Available at: < https://youtu.be/q_5xrPYRoAg?si=gRbHfP1TazLTqbrY > [Accessed 19 September 2026]
+* Simplified Coding, 2021. #12 Android Login/Signup with MVVM - user Logout (Version 1.0) [video online] [source code]. Available at: < https://youtu.be/q_5xrPYRoAg?si=gRbHfP1TazLTqbrY > [Accessed 19 September 2026]
 *
 * */
