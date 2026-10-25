@@ -7,7 +7,8 @@ namespace MetrixAPI.Models
         public string IconKey { get; set;} = "default";
         public string ColorHex{ get; set;} = "#29B6F6";
         public int GoldCoins { get; set; } = 5; 
-       public double Progress { get; set;}
+        public int TargetCount { get; set; } = 1;   // times per day the habit is done
+       public double Progress { get; set;} 
 
     }
 }

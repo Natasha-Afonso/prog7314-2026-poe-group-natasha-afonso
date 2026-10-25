@@ -66,7 +66,11 @@ public class HabitsController : ControllerBase
         return ItemToDTO(habit);
     }
 
-    // PUT: api/Habits/5   (edits label, icon, colour, coins)
+    // Limits used when a habit is created or edited (the app offers 1 to 20 times a day)
+    private const int MinTarget = 1;
+    private const int MaxTarget = 20;
+
+    // PUT: api/Habits/5   (edits label, icon, colour, coins, daily target)
     [HttpPut("{id}")]
     public async Task<IActionResult> PutHabit(int id, HabitItemDTO habitItemDTO)
     {
@@ -88,9 +92,10 @@ public class HabitsController : ControllerBase
         }
 
         habit.Label = habitItemDTO.Label;
-        habit.IconKey = habitItemDTO.IconKey;
-        habit.ColorHex = habitItemDTO.ColorHex;
+        habit.IconKey = string.IsNullOrWhiteSpace(habitItemDTO.IconKey) ? "default" : habitItemDTO.IconKey;
+        habit.ColorHex = string.IsNullOrWhiteSpace(habitItemDTO.ColorHex) ? "#29B6F6" : habitItemDTO.ColorHex;
         habit.GoldCoins = habitItemDTO.GoldCoins;
+        habit.TargetCount = Math.Clamp(habitItemDTO.TargetCount, MinTarget, MaxTarget);
 
         try
         {
@@ -155,9 +160,10 @@ public class HabitsController : ControllerBase
         {
             UserId = userId,   // from the token, never from the client
             Label = habitItemDTO.Label.Trim(),
-            IconKey = habitItemDTO.IconKey,
-            ColorHex = habitItemDTO.ColorHex,
+            IconKey = string.IsNullOrWhiteSpace(habitItemDTO.IconKey) ? "default" : habitItemDTO.IconKey,
+            ColorHex = string.IsNullOrWhiteSpace(habitItemDTO.ColorHex) ? "#29B6F6" : habitItemDTO.ColorHex,
             GoldCoins = habitItemDTO.GoldCoins,
+            TargetCount = Math.Clamp(habitItemDTO.TargetCount, MinTarget, MaxTarget),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -206,6 +212,7 @@ public class HabitsController : ControllerBase
             IconKey = habit.IconKey,
             ColorHex = habit.ColorHex,
             GoldCoins = habit.GoldCoins,
+            TargetCount = habit.TargetCount,
             Progress = habit.Logs.FirstOrDefault()?.Progress ?? 0
         };
 }

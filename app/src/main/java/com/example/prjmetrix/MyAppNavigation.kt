@@ -26,6 +26,7 @@ import com.example.prjmetrix.pages.AccessibilityScreen
 import com.example.prjmetrix.pages.LanguageScreen
 import com.example.prjmetrix.pages.LoginScreen
 import com.example.prjmetrix.pages.SettingsScreen
+import com.example.prjmetrix.pages.ShopScreen
 import com.example.prjmetrix.pages.SignupScreen
 import com.example.prjmetrix.pages.ThemesScreen
 import com.example.prjmetrix.pages.WardrobeScreen
@@ -99,7 +100,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
         else -> "home"
     }
 
-        // Apply the user's theme and accessibility settings to the whole app
+    // Apply the user's theme and accessibility settings to the whole app
     AppTheme(
         theme = currentSettings.theme,
         fontSize = currentSettings.fontSize,
@@ -119,72 +120,88 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                 startDestination = startDestination,
                 modifier = Modifier.fillMaxSize()
             ) {
-        composable("login"){
-            LoginScreen(modifier, navController, authViewModel)
-        }
-        composable("signup"){
-            SignupScreen(modifier, navController, authViewModel)
-        }
-            composable("home") {
-                HomeScreen(
-                    onSettingsClick = { navController.navigate("settings") },
-                    onSessionExpired = {authViewModel.signOut() }
-                )
-            }
-
-        //Onboarding: welcome intro, then the profile-setup questions
-        composable  ("welcome") {
-            WelcomeScreen ( onGetStarted = { navController.navigate("survey")} )
-        }
-
-        composable ("survey") {
-            SurveyScaffold(
-                //onboarding happens for new uses, so going back signs them out again
-                onNavigateUp = { authViewModel.signOut() },
-                onFinished =  {
-                    //after onboarding the user is taken to their profile page
-                    navController.navigate("profile") {
-                        popUpTo(0) { inclusive = true }
-                    }
+                composable("login"){
+                    LoginScreen(modifier, navController, authViewModel)
                 }
-            )
-        }
-
-
-        // Profile
-        composable("profile") {
-
-            ProfileScreen(
-                profileViewModel)
-        }
-
-        //Wardrobe
-        composable("wardrobe") {
-            WardrobeScreen (
-                onPlannerClick = {
-                    navController.navigate("planner")
+                composable("signup"){
+                    SignupScreen(modifier, navController, authViewModel)
                 }
-            )
-        }
+                composable("home") {
+                    HomeScreen(
+                        onSettingsClick = { navController.navigate("settings") },
+                        onSessionExpired = {authViewModel.signOut() },
+                        onShopClick = { navController.navigate("shop") }
+                    )
+                }
 
-        // Settings
-        composable("settings") {
+                //Onboarding: welcome intro, then the profile-setup questions
+                composable  ("welcome") {
+                    WelcomeScreen ( onGetStarted = { navController.navigate("survey")} )
+                }
 
-            SettingsScreen(
-                navController,
-                authViewModel,
-                settingsViewModel
-            )
-        }
+                composable ("survey") {
+                    SurveyScaffold(
+                        //onboarding happens for new uses, so going back signs them out again
+                        onNavigateUp = { authViewModel.signOut() },
+                        onFinished =  {
+                            //after onboarding the user is taken to their profile page
+                            navController.navigate("profile") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    )
+                }
 
-        // Language
-        composable("language") {
 
-            LanguageScreen(
-                navController
-            )
-        }
+                // Profile
+                composable("profile") {
 
+                    ProfileScreen(
+                        profileViewModel)
+                }
+
+                // Shop (buy furniture with coins; bought items appear in Edit mode on the home screen)
+                composable("shop") {
+                    ShopScreen(onBack = { navController.popBackStack() })
+                }
+
+                //Wardrobe
+                composable("wardrobe") {
+                    WardrobeScreen (
+                        onPlannerClick = {
+                            navController.navigate("planner")
+                        }
+                    )
+                }
+
+                // Settings
+                composable("settings") {
+
+                    SettingsScreen(
+                        navController,
+                        authViewModel,
+                        settingsViewModel
+                    )
+                }
+
+                // Language
+                composable("language") {
+
+                    LanguageScreen(
+                        navController
+                    )
+                }
+
+                // Themes
+                composable("themes") {
+
+                    ThemesScreen(
+                        navController = navController,
+                        currentTheme = currentSettings.theme,
+                        onThemeChange = { newTheme ->
+
+                            settingsViewModel.updateTheme(newTheme)
+                        }
         // Themes
                 composable("themes") {
                     ThemesScreen(
@@ -196,41 +213,41 @@ fun MyAppNavigation(modifier: Modifier = Modifier) {
                     )
                 }
 
-        // Accessibility
-        composable("accessibility") {
+                // Accessibility
+                composable("accessibility") {
 
-            AccessibilityScreen(
-                navController = navController,
-                fontSize = currentSettings.fontSize,
-                highContrast = currentSettings.highContrast,
-
-                onFontSizeChange = { newSize ->
-
-                    settingsViewModel.updateAccessibility(
-                        fontSize = newSize,
-                        highContrast = currentSettings.highContrast
-                    )
-                },
-
-                onHighContrastChange = { newContrast ->
-
-                    settingsViewModel.updateAccessibility(
+                    AccessibilityScreen(
+                        navController = navController,
                         fontSize = currentSettings.fontSize,
-                        highContrast = newContrast
+                        highContrast = currentSettings.highContrast,
+
+                        onFontSizeChange = { newSize ->
+
+                            settingsViewModel.updateAccessibility(
+                                fontSize = newSize,
+                                highContrast = currentSettings.highContrast
+                            )
+                        },
+
+                        onHighContrastChange = { newContrast ->
+
+                            settingsViewModel.updateAccessibility(
+                                fontSize = currentSettings.fontSize,
+                                highContrast = newContrast
+                            )
+                        }
                     )
                 }
-            )
-        }
-        composable("journalcover") {
-            JournalCover(onOpenJournal = { navController.navigate("journallist") })
-        }
-        composable("journallist") {
-            JournalList(
-                onBack = { navController.popBackStack() },
-                onWriteEntry = { navController.navigate("journalentry") },
-                onEditEntry = { id -> navController.navigate("journalentry?entryId=$id") }
-            )
-        }
+                composable("journalcover") {
+                    JournalCover(onOpenJournal = { navController.navigate("journallist") })
+                }
+                composable("journallist") {
+                    JournalList(
+                        onBack = { navController.popBackStack() },
+                        onWriteEntry = { navController.navigate("journalentry") },
+                        onEditEntry = { id -> navController.navigate("journalentry?entryId=$id") }
+                    )
+                }
                 composable(
                     route = "journalentry?entryId={entryId}",
                     arguments = listOf(navArgument("entryId") {
